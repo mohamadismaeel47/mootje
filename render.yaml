@@ -1,0 +1,42 @@
+# Render Blueprint: creates the web app, a PostgreSQL database and a private disk for CV files.
+# In Render: New + > Blueprint > choose this repository. Prices: see render.com/pricing.
+services:
+  - type: web
+    name: recruitment-crm
+    runtime: node
+    plan: starter            # a paid plan is needed for the persistent disk (CV files)
+    region: frankfurt        # EU region (GDPR)
+    buildCommand: npm --prefix server ci && npm --prefix client ci --include=dev && npm run build
+    startCommand: npm start
+    healthCheckPath: /health
+    autoDeploy: true
+    disk:
+      name: cv-files
+      mountPath: /var/data
+      sizeGB: 1
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: NODE_VERSION
+        value: "22"
+      - key: DATABASE_URL
+        fromDatabase:
+          name: recruitment-crm-db
+          property: connectionString
+      - key: UPLOAD_DIR
+        value: /var/data/uploads
+      - key: JWT_SECRET
+        generateValue: true
+      - key: ENCRYPTION_KEY
+        generateValue: true
+      - key: SETUP_TOKEN
+        sync: false          # Render asks you for this value: choose a long secret, you need it once
+      - key: WHATSAPP_VERIFY_TOKEN
+        generateValue: true
+
+databases:
+  - name: recruitment-crm-db
+    plan: basic-256mb
+    region: frankfurt
+    databaseName: recruitment_crm
+    user: crm
