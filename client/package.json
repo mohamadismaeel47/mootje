@@ -1,14 +1,12 @@
 {
-  "name": "client",
+  "name": "recruitment-crm-client",
   "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
+  "description": "Web interface",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
   "dependencies": {
     "lucide-react": "^1.70.0",
     "react": "^18.3.1",
@@ -19,5 +17,7 @@
   "devDependencies": {
     "@vitejs/plugin-react": "^4.7.0",
     "vite": "^5.4.21"
-  }
+  },
+  "private": true,
+  "type": "module"
 }

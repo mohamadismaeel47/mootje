@@ -10,7 +10,7 @@ export function issueSession(res, user) {
   res.cookie(COOKIE, token, {
     httpOnly: true,
     sameSite: 'lax',
-    secure: config.isProd,
+    secure: res.req?.secure || false, // secure cookie whenever the site runs on https
     maxAge: config.sessionHours * 3600 * 1000,
     path: '/',
   });

@@ -1,0 +1,419 @@
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { Link, useNavigate, useParams } from 'react-router-dom';
+import {
+  ArrowLeft, MessageCircle, Trash2, FileDown, Check, AlertCircle, Loader2, Upload, FileText, ExternalLink, Download,
+  Send, Target, History, UserRound, Paperclip, Eye, ShieldAlert, CheckCircle2, XCircle, HelpCircle,
+} from 'lucide-react';
+import { api, fmtDate, fmtDateTime, fmtPhone, STATUS_LABELS } from '../api.js';
+import {
+  useAsync, Spinner, ErrorBox, StatusBadge, SubmissionBadge, Empty, Confirm, Modal, Alert, Field, useToast, initials, scoreColor, downloadUrl,
+} from '../components/ui.jsx';
+import CandidateForm, { toPayload } from '../components/CandidateForm.jsx';
+import { useAuth } from '../App.jsx';
+
+export default function CandidateDetail() {
+  const { id } = useParams();
+  const { data, error, loading, reload } = useAsync(() => api.get(`/candidates/${id}`), [id]);
+  const [tab, setTab] = useState('profile');
+  const { can } = useAuth();
+  const navigate = useNavigate();
+  const toast = useToast();
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [starting, setStarting] = useState(false);
+
+  if (loading && !data) return <Spinner />;
+  if (error) return <ErrorBox error={error} />;
+  const c = data;
+
+  const startChat = async () => {
+    setStarting(true);
+    try {
+      const r = await api.post(`/conversations/start/${c.id}`);
+      toast('First WhatsApp message sent', 'success');
+      navigate(`/inbox/${r.conversationId}`);
+    } catch (err) { toast(err.message, 'error'); } finally { setStarting(false); }
+  };
+
+  return (
+    <>
+      <div className="row" style={{ marginBottom: 12 }}>
+        <Link to="/candidates" className="btn ghost sm"><ArrowLeft size={15} /> Candidates</Link>
+      </div>
+      <div className="card" style={{ marginBottom: 16 }}>
+        <div className="card-body row wrap" style={{ gap: 16 }}>
+          <div className="avatar lg light">{initials(c.full_name)}</div>
+          <div style={{ flex: 1, minWidth: 200 }}>
+            <h1>{c.full_name || 'Name not known yet'}</h1>
+            <div className="row wrap muted small" style={{ marginTop: 4, gap: 12 }}>
+              <span>{fmtPhone(c.phone)}</span>
+              {c.email && <span>{c.email}</span>}
+              <span>Registered {fmtDate(c.created_at)}</span>
+              <span className="badge">{c.source === 'whatsapp' ? 'Via WhatsApp' : c.source === 'import' ? 'Imported' : 'Added manually'}</span>
+              {!c.consent_given && <span className="badge amber">No privacy consent</span>}
+            </div>
+          </div>
+          <StatusBadge status={c.status} />
+          <div className="actions">
+            {c.conversation
+              ? <Link to={`/inbox/${c.conversation.id}`} className="btn blue"><MessageCircle size={16} /> Open chat{c.conversation.unread_count > 0 ? ` (${c.conversation.unread_count})` : ''}</Link>
+              : can('recruiter') && <button type="button" className="btn blue" disabled={starting} onClick={startChat}><MessageCircle size={16} /> Start WhatsApp</button>}
+            {can('admin') && <button type="button" className="btn" onClick={() => downloadUrl(`/api/candidates/${c.id}/data-export`)} title="GDPR data export"><FileDown size={16} /> Export data</button>}
+            {can('admin') && <button type="button" className="btn danger" onClick={() => setConfirmDelete(true)}><Trash2 size={16} /> Delete</button>}
+          </div>
+        </div>
+        {c.deletion_requested_at && (
+          <div style={{ padding: '0 18px 16px' }}>
+            <Alert type="error"><b>This candidate asked to delete their data</b> on {fmtDateTime(c.deletion_requested_at)} (GDPR). Please delete the candidate{can('admin') ? '' : ' (ask an admin)'} and confirm this to them.</Alert>
+          </div>
+        )}
+        <div className="tabs">
+          {[
+            ['profile', 'Profile', UserRound], ['matches', 'Matching vacancies', Target], ['files', `CV & files (${c.files.length})`, Paperclip],
+            ['submissions', `Agencies (${c.submissions.length})`, Send], ['history', 'History', History],
+          ].map(([k, l, I]) => <button type="button" key={k} className={tab === k ? 'on' : ''} onClick={() => setTab(k)}><I size={15} /> {l}</button>)}
+        </div>
+      </div>
+
+      {tab === 'profile' && <Profile candidate={c} onSaved={() => reload(true)} />}
+      {tab === 'matches' && <Matches candidate={c} onChange={() => reload(true)} />}
+      {tab === 'files' && <Files candidate={c} onChange={() => reload(true)} />}
+      {tab === 'submissions' && <CandidateSubmissions candidate={c} onChange={() => reload(true)} />}
+      {tab === 'history' && (
+        <div className="card"><div className="card-body">
+          <ul className="timeline">
+            {c.history.map((h) => (
+              <li key={h.id}>
+                <b>{h.from_status ? `${STATUS_LABELS[h.from_status]} → ${STATUS_LABELS[h.to_status]}` : `Created as ${STATUS_LABELS[h.to_status]}`}</b>
+                <div className="small muted">{fmtDateTime(h.changed_at)} · {h.user_name || 'WhatsApp assistant / system'}</div>
+              </li>
+            ))}
+          </ul>
+        </div></div>
+      )}
+
+      {confirmDelete && (
+        <Confirm title="Delete candidate permanently?" danger confirmLabel="Delete permanently" onClose={() => setConfirmDelete(false)}
+          onConfirm={async () => { await api.del(`/candidates/${c.id}`); toast('Candidate and all related data deleted', 'success'); navigate('/candidates'); }}>
+          <p>This deletes <b>{c.full_name || fmtPhone(c.phone)}</b>, all WhatsApp messages, CV files and agency submissions. This cannot be undone.</p>
+        </Confirm>
+      )}
+    </>
+  );
+}
+
+// Profile form with automatic saving.
+function Profile({ candidate, onSaved }) {
+  const { can, user } = useAuth();
+  const [form, setForm] = useState(() => ({ ...candidate, phone_input: fmtPhone(candidate.phone), bsn: '' }));
+  const [dirty, setDirty] = useState({});
+  const [state, setState] = useState('idle');
+  const [errors, setErrors] = useState({});
+  const [bsn, setBsn] = useState(null);
+  const timer = useRef(null);
+  const editable = can('recruiter');
+
+  const save = useCallback(async (fields) => {
+    const keys = Object.keys(fields);
+    if (!keys.length) return;
+    setState('saving');
+    try {
+      const payload = toPayload(Object.fromEntries(keys.map((k) => [k, fields[k]])));
+      if (keys.includes('bsn')) payload.bsn = fields.bsn || null;
+      await api.patch(`/candidates/${candidate.id}`, payload);
+      setDirty((d) => { const n = { ...d }; for (const k of keys) if (n[k] === fields[k]) delete n[k]; return n; });
+      setErrors({});
+      setState('saved');
+      onSaved();
+    } catch (err) {
+      const field = err.message.split(':')[0];
+      setErrors({ [field]: err.message.replace(/^[^:]+:\s*/, '') });
+      setState('error');
+    }
+  }, [candidate.id, onSaved]);
+
+  useEffect(() => {
+    clearTimeout(timer.current);
+    if (!Object.keys(dirty).length) return undefined;
+    const fields = { ...dirty };
+    // BSN is only saved when complete, to avoid saving half numbers.
+    if ('bsn' in fields && fields.bsn && !/^\d{8,9}$/.test(fields.bsn.replace(/\D/g, ''))) delete fields.bsn;
+    timer.current = setTimeout(() => save(fields), 900);
+    return () => clearTimeout(timer.current);
+  }, [dirty, save]);
+
+  const onChange = (k, v) => {
+    setForm((f) => ({ ...f, [k]: v, ...(k === 'phone' ? { phone_input: v } : {}), ...(k === 'languages' ? { languages_input: v } : {}) }));
+    setDirty((d) => ({ ...d, [k]: v }));
+    setState('pending');
+  };
+
+  return (
+    <div className="split">
+      <div className="card">
+        <div className="card-head">
+          <h3>Candidate profile</h3>
+          <span className={`saved-indicator ${state === 'saved' ? 'ok' : state === 'error' ? 'err' : ''}`}>
+            {state === 'saving' || state === 'pending' ? <><Loader2 size={14} className="spin" /> Saving…</> : state === 'saved' ? <><Check size={14} /> All changes saved</> : state === 'error' ? <><AlertCircle size={14} /> Not saved – check the field</> : 'Changes are saved automatically'}
+          </span>
+        </div>
+        <div className="card-body">
+          <CandidateForm value={form} onChange={onChange} disabled={!editable} isAdmin={user.role === 'admin'} errors={errors} />
+        </div>
+      </div>
+      <div className="stack">
+        <div className="card">
+          <div className="card-head"><h3>Registration progress</h3></div>
+          <div className="card-body"><Progress c={candidate} /></div>
+        </div>
+        {candidate.conversation && (
+          <div className="card">
+            <div className="card-head"><h3>WhatsApp</h3><Link to={`/inbox/${candidate.conversation.id}`} className="small">Open chat</Link></div>
+            <div className="card-body stack small">
+              <div className="row between"><span className="muted">Mode</span><span className={`badge ${candidate.conversation.mode === 'auto' ? 'blue' : 'amber'}`}>{candidate.conversation.mode === 'auto' ? 'Automatic' : 'Manual'}</span></div>
+              <div className="row between"><span className="muted">Status</span><span>{candidate.conversation.status.replace('_', ' ')}</span></div>
+              <div className="row between"><span className="muted">Last message</span><span>{fmtDateTime(candidate.conversation.last_message_at)}</span></div>
+            </div>
+          </div>
+        )}
+        {user.role === 'admin' && candidate.bsn_stored && (
+          <div className="card">
+            <div className="card-head"><h3>BSN</h3></div>
+            <div className="card-body stack">
+              <p className="small muted"><ShieldAlert size={14} style={{ verticalAlign: -2 }} /> Stored encrypted. Every view is logged.</p>
+              {bsn ? <code style={{ fontSize: 16 }}>{bsn}</code> : (
+                <button type="button" className="btn sm" style={{ alignSelf: 'flex-start' }} onClick={async () => setBsn((await api.get(`/candidates/${candidate.id}/bsn`)).bsn)}><Eye size={14} /> Show BSN</button>
+              )}
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+const REQUIRED = [
+  ['Full name', (c) => c.full_name], ['Age', (c) => c.age != null], ['Nationality', (c) => c.nationality],
+  ['Location', (c) => c.current_city || c.current_country], ['BSN (yes/no)', (c) => c.has_bsn != null], ['English', (c) => c.english_level],
+  ['Driving licence', (c) => c.driving_licence != null], ['Own car', (c) => c.own_car != null], ['Experience', (c) => c.has_experience != null],
+  ['Certificates', (c) => c.forklift != null && c.ept != null && c.reach_truck != null], ['Availability', (c) => c.availability || c.available_from],
+  ['Desired job', (c) => c.desired_job],
+];
+
+function Progress({ c }) {
+  const done = REQUIRED.filter(([, f]) => f(c)).length;
+  const pct = Math.round((done / REQUIRED.length) * 100);
+  return (
+    <div className="stack">
+      <div className="row between"><b>{done} of {REQUIRED.length} answered</b><span className="muted">{pct}%</span></div>
+      <div className={`progress ${pct === 100 ? 'green' : ''}`}><div style={{ width: `${pct}%` }} /></div>
+      <ul className="check-list small">
+        {REQUIRED.map(([l, f]) => (
+          <li key={l}>{f(c) ? <CheckCircle2 size={16} className="ok" /> : <HelpCircle size={16} className="faint" />}<span className={f(c) ? '' : 'muted'}>{l}</span></li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+export function MatchChecks({ m }) {
+  return (
+    <>
+      <div className="checks">
+        {m.checks.map((ch) => (
+          <span key={ch.label} className={`check ${ch.ok ? 'ok' : ch.unknown ? 'unknown' : 'no'}`} title={ch.detail}>
+            {ch.ok ? <CheckCircle2 size={14} /> : ch.unknown ? <HelpCircle size={14} /> : <XCircle size={14} />} {ch.detail}
+          </span>
+        ))}
+      </div>
+      {m.info.length > 0 && <div className="small muted" style={{ marginTop: 6 }}>{m.info.join(' · ')}</div>}
+    </>
+  );
+}
+
+function Matches({ candidate, onChange }) {
+  const { data, error, loading, reload } = useAsync(() => api.get(`/candidates/${candidate.id}/matches`), [candidate.id]);
+  const { can } = useAuth();
+  const toast = useToast();
+  const propose = async (m) => {
+    try {
+      await api.post('/submissions', { candidate_id: candidate.id, vacancy_id: m.vacancy.id });
+      toast('Proposal created. Approve it in the "Agencies" tab to send it.', 'success');
+      reload(true); onChange();
+    } catch (err) { toast(err.message, 'error'); }
+  };
+  if (loading && !data) return <Spinner />;
+  return (
+    <div className="card">
+      <div className="card-head">
+        <div><h3>Matching vacancies</h3><div className="small muted">Open vacancies compared with this candidate's answers. Nothing is sent without your approval.</div></div>
+      </div>
+      <ErrorBox error={error} />
+      {data?.length === 0 && <Empty icon={Target} title="No open vacancies">Add vacancies to see matches.</Empty>}
+      {data?.map((m) => (
+        <div key={m.vacancy.id} className="match">
+          <div className="row wrap">
+            <span className={`score ${scoreColor(m.score)}`}>{m.score}%</span>
+            <div style={{ flex: 1, minWidth: 180 }}>
+              <Link to={`/vacancies/${m.vacancy.id}`} className="name"><b>{m.vacancy.title}</b></Link>
+              <div className="small muted">{[m.vacancy.agency_name, m.vacancy.location, m.vacancy.salary].filter(Boolean).join(' · ')}</div>
+            </div>
+            {!m.eligible && <span className="badge red">Does not meet requirements</span>}
+            {m.submission_status ? <SubmissionBadge status={m.submission_status} /> : can('recruiter') && (
+              <button type="button" className="btn sm" onClick={() => propose(m)} disabled={!m.vacancy.agency_id} title={m.vacancy.agency_id ? '' : 'Vacancy has no agency'}><Send size={14} /> Propose</button>
+            )}
+          </div>
+          <MatchChecks m={m} />
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function Files({ candidate, onChange }) {
+  const { can } = useAuth();
+  const toast = useToast();
+  const [busy, setBusy] = useState(false);
+  const [drag, setDrag] = useState(false);
+  const [del, setDel] = useState(null);
+  const upload = async (file) => {
+    if (!file) return;
+    setBusy(true);
+    try { await api.upload(`/candidates/${candidate.id}/files`, file, { kind: 'cv' }); toast('File uploaded', 'success'); onChange(); } catch (err) { toast(err.message, 'error'); } finally { setBusy(false); }
+  };
+  return (
+    <div className="card">
+      <div className="card-head"><h3>CV &amp; files</h3><span className="small muted">PDF, Word, JPG or PNG · max 10 MB · stored privately</span></div>
+      <div className="card-body stack">
+        {can('recruiter') && (
+          <label className={`dropzone ${drag ? 'drag' : ''}`} onDragOver={(e) => { e.preventDefault(); setDrag(true); }} onDragLeave={() => setDrag(false)}
+            onDrop={(e) => { e.preventDefault(); setDrag(false); upload(e.dataTransfer.files[0]); }}>
+            <input type="file" hidden accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,.webp" onChange={(e) => upload(e.target.files[0])} />
+            <Upload size={22} /><div>{busy ? 'Uploading…' : 'Drop a CV here or click to upload'}</div>
+          </label>
+        )}
+        {candidate.files.length === 0 ? <p className="muted small">No files yet. Candidates can also send their CV through WhatsApp.</p> : (
+          <div>
+            {candidate.files.map((f) => (
+              <div key={f.id} className="file-row">
+                <FileText size={22} className="faint" />
+                <div className="meta"><b>{f.original_name}</b><span className="small muted">{(f.size_bytes / 1024).toFixed(0)} KB · {f.source === 'whatsapp' ? 'Received via WhatsApp' : 'Uploaded'} · {fmtDateTime(f.created_at)}</span></div>
+                <a className="btn sm" href={`/api/files/${f.id}`} target="_blank" rel="noopener noreferrer"><ExternalLink size={14} /> Open</a>
+                <a className="btn sm" href={`/api/files/${f.id}?download=1`}><Download size={14} /> Download</a>
+                {can('recruiter') && <button type="button" className="btn sm danger icon" aria-label="Delete file" onClick={() => setDel(f)}><Trash2 size={14} /></button>}
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+      {del && <Confirm title="Delete file?" danger confirmLabel="Delete" onClose={() => setDel(null)} onConfirm={async () => { await api.del(`/files/${del.id}`); onChange(); }}><p>Delete <b>{del.original_name}</b>?</p></Confirm>}
+    </div>
+  );
+}
+
+function CandidateSubmissions({ candidate, onChange }) {
+  const { can } = useAuth();
+  const [sendItem, setSendItem] = useState(null);
+  const [showAdd, setShowAdd] = useState(false);
+  return (
+    <div className="card">
+      <div className="card-head">
+        <h3>Agencies &amp; vacancies</h3>
+        {can('recruiter') && <button type="button" className="btn sm" onClick={() => setShowAdd(true)}><Send size={14} /> Propose to agency</button>}
+      </div>
+      {candidate.submissions.length === 0 ? <Empty icon={Send} title="Not proposed yet">Use “Matching vacancies” or the button above.</Empty> : (
+        <div className="table-wrap">
+          <table className="table">
+            <thead><tr><th>Vacancy</th><th>Agency</th><th>Match</th><th>Status</th><th>Sent</th><th /></tr></thead>
+            <tbody>
+              {candidate.submissions.map((s) => (
+                <tr key={s.id}>
+                  <td>{s.vacancy_id ? <Link to={`/vacancies/${s.vacancy_id}`}>{s.vacancy_title}</Link> : '—'}</td>
+                  <td>{s.agency_name || '—'}</td>
+                  <td>{s.match_score != null ? `${s.match_score}%` : '—'}</td>
+                  <td><SubmissionBadge status={s.status} /></td>
+                  <td className="sub">{fmtDateTime(s.sent_at)}</td>
+                  <td style={{ textAlign: 'right' }}>
+                    {s.status === 'proposed' && can('recruiter') && <button type="button" className="btn sm primary" onClick={() => setSendItem(s)}><Check size={14} /> Approve &amp; send</button>}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+      {sendItem && <SendModal submission={{ ...sendItem, full_name: candidate.full_name, candidate_id: candidate.id }} files={candidate.files} consent={candidate.consent_given} onClose={() => setSendItem(null)} onDone={onChange} />}
+      {showAdd && <ProposeModal candidateId={candidate.id} onClose={() => setShowAdd(false)} onDone={onChange} />}
+    </div>
+  );
+}
+
+export function ProposeModal({ candidateId, onClose, onDone }) {
+  const { data: agencies } = useAsync(() => api.get('/agencies'), []);
+  const { data: vacancies } = useAsync(() => api.get('/vacancies?status=open'), []);
+  const [form, setForm] = useState({ agency_id: '', vacancy_id: '', notes: '' });
+  const [error, setError] = useState(null);
+  const toast = useToast();
+  const submit = async () => {
+    try {
+      await api.post('/submissions', { candidate_id: candidateId, agency_id: form.agency_id || null, vacancy_id: form.vacancy_id || null, notes: form.notes || null });
+      toast('Proposal created', 'success'); onDone(); onClose();
+    } catch (err) { setError(err); }
+  };
+  return (
+    <Modal title="Propose to agency" onClose={onClose} footer={<><button type="button" className="btn" onClick={onClose}>Cancel</button><button type="button" className="btn primary" onClick={submit}>Create proposal</button></>}>
+      <div className="stack">
+        <ErrorBox error={error} />
+        <Field label="Vacancy (optional)">
+          <select value={form.vacancy_id} onChange={(e) => {
+            const v = vacancies?.find((x) => String(x.id) === e.target.value);
+            setForm({ ...form, vacancy_id: e.target.value, agency_id: v?.agency_id ? String(v.agency_id) : form.agency_id });
+          }}>
+            <option value="">— No specific vacancy —</option>
+            {vacancies?.map((v) => <option key={v.id} value={v.id}>{v.title}{v.agency_name ? ` (${v.agency_name})` : ''}</option>)}
+          </select>
+        </Field>
+        <Field label="Agency">
+          <select value={form.agency_id} onChange={(e) => setForm({ ...form, agency_id: e.target.value })}>
+            <option value="">Choose agency…</option>
+            {agencies?.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}
+          </select>
+        </Field>
+        <Field label="Notes"><textarea value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} /></Field>
+        <p className="small muted">This only creates a proposal. You approve and send it in the next step.</p>
+      </div>
+    </Modal>
+  );
+}
+
+export function SendModal({ submission, files, consent, onClose, onDone }) {
+  const [sendEmail, setSendEmail] = useState(false);
+  const [cv, setCv] = useState(files?.[0]?.id ? String(files[0].id) : '');
+  const [error, setError] = useState(null);
+  const [busy, setBusy] = useState(false);
+  const toast = useToast();
+  const submit = async () => {
+    setBusy(true); setError(null);
+    try {
+      const r = await api.post(`/submissions/${submission.id}/send`, { confirm: true, send_email: sendEmail, cv_file_id: cv ? Number(cv) : null });
+      toast(r.emailed ? 'Candidate emailed to the agency' : 'Marked as sent to the agency', 'success');
+      onDone(); onClose();
+    } catch (err) { setError(err); } finally { setBusy(false); }
+  };
+  return (
+    <Modal title="Approve and send to agency" onClose={onClose} footer={<><button type="button" className="btn" onClick={onClose}>Cancel</button><button type="button" className="btn primary" onClick={submit} disabled={busy}><Check size={15} /> I approve – send</button></>}>
+      <div className="stack">
+        <p>You are about to send <b>{submission.full_name || 'this candidate'}</b> to <b>{submission.agency_name}</b>{submission.vacancy_title ? <> for <b>{submission.vacancy_title}</b></> : null}.</p>
+        {!consent && <Alert type="warn">This candidate has not given privacy consent. Ask for consent before you share their data with an agency.</Alert>}
+        <Field label="Attach CV">
+          <select value={cv} onChange={(e) => setCv(e.target.value)}>
+            <option value="">No CV</option>
+            {files?.map((f) => <option key={f.id} value={f.id}>{f.original_name}</option>)}
+          </select>
+        </Field>
+        <label className="checkbox"><input type="checkbox" checked={sendEmail} onChange={(e) => setSendEmail(e.target.checked)} /> Email the candidate profile {cv ? 'and CV ' : ''}to the agency now</label>
+        <p className="small muted">Without email, the proposal is only marked as “sent” (for example when you send it yourself). Email requires SMTP settings.</p>
+        <ErrorBox error={error} />
+      </div>
+    </Modal>
+  );
+}
