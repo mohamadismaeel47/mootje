@@ -1,0 +1,17 @@
+{
+  "name": "recruitment-crm",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Recruitment CRM with WhatsApp Business Cloud API automation",
+  "scripts": {
+    "install:all": "npm --prefix server install && npm --prefix client install",
+    "setup:env": "node server/scripts/generate-env.js",
+    "migrate": "npm --prefix server run migrate",
+    "dev:server": "npm --prefix server run dev",
+    "dev:client": "npm --prefix client run dev",
+    "build": "npm --prefix client run build",
+    "start": "npm --prefix server start",
+    "test": "npm --prefix server test",
+    "create-admin": "npm --prefix server run create-admin"
+  }
+}
