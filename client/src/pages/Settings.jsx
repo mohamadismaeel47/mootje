@@ -311,7 +311,7 @@ function PrivacyTab({ s, reload }) {
           <p>• The assistant asks for consent before collecting answers (can be switched in Assistant settings).</p>
           <p>• Candidates can send <b>DELETE</b> / <b>VERWIJDER</b>. You get a notification and delete the profile with one click.</p>
           <p>• Admins can export all data of one candidate (right of access) and delete everything (right to erasure).</p>
-          <p>• BSN numbers and API tokens are stored encrypted. Every BSN view is logged.</p>
+          <p>• Only “has a valid BSN” (yes/no) is stored, never the BSN number. API tokens are stored encrypted.</p>
           <p>• CV files are stored privately and are only available after login.</p>
           <SettingsForm s={s} reload={reload} keys={['privacy.retention_months', 'general.company_name']} types={{ 'privacy.retention_months': 'number' }} hints={{ 'privacy.retention_months': 'Your retention policy. Review and delete old candidates regularly.' }} />
         </div>

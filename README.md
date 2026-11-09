@@ -24,7 +24,7 @@ registers candidates automatically through the **official Meta WhatsApp Business
 | Vacancies & agencies | Full vacancy and agency records, linked to each other and to candidates |
 | Matching | Match percentage per candidate/vacancy with reasons (✓ / ✗ / unknown); proposals need your approval before anything is sent |
 | CV management | Upload, open, download, delete; CVs sent through WhatsApp are downloaded automatically; send CV to agency by email after approval |
-| Security | bcrypt passwords, httpOnly session cookie, roles (admin / recruiter / viewer), CSRF protection, login rate limiting, encrypted API tokens and BSN numbers, webhook signature check, audit log |
+| Security | bcrypt passwords, httpOnly session cookie, roles (admin / recruiter / viewer), CSRF protection, login rate limiting, encrypted API tokens, only BSN yes/no (never the number), webhook signature check, audit log |
 | GDPR | Consent tracking, deletion requests via WhatsApp, data export per candidate, permanent delete incl. files and messages |
 
 ## Quick start (local)
@@ -62,7 +62,7 @@ webhook URL with a valid certificate.
    `NODE_ENV=production`, `PUBLIC_URL=https://your-domain`, `JWT_SECRET`, `ENCRYPTION_KEY`, `SETUP_TOKEN`.
 3. Build command: `npm run install:all && npm run build` — Start command: `npm start`.
 4. Make sure `UPLOAD_DIR` is on a **persistent disk** (otherwise CVs are lost on redeploy).
-5. Back up the database and `ENCRYPTION_KEY`. Without the key, encrypted tokens and BSN numbers cannot be read.
+5. Back up the database and `ENCRYPTION_KEY`. Without the key, encrypted tokens cannot be read.
 
 The server runs as **one process** (the assistant processes messages of one conversation in order). Do not run multiple
 instances behind a load balancer without adding a shared lock.
@@ -101,10 +101,8 @@ WhatsApp only allows free-form messages within 24 hours after the candidate's la
 
 ## Privacy notes
 
-- **BSN:** the assistant only asks *whether* a candidate has a BSN (yes/no) and tells them not to send the number.
-  Under Dutch law only organisations with a legal basis may process BSN numbers. As an intermediary you usually do
-  **not** need the number itself; the employer/agency collects it when the contract is signed. The optional BSN field
-  is encrypted, admin-only and every view is logged – only use it if you have checked that you are allowed to.
+- **BSN:** the assistant only asks *whether* a candidate has a valid BSN (yes/no) and tells them not to send the
+  number. The CRM never stores the BSN number itself; the employer/agency collects it when the contract is signed.
 - Collect only what you need, and review/delete old candidates according to your retention period.
 - Candidates can send **DELETE** / **VERWIJDER**; you get a notification and delete the profile with one click.
 

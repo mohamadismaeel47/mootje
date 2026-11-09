@@ -5,7 +5,6 @@ import { one, many, query } from '../db/pool.js';
 import { validate } from '../middleware/validate.js';
 import { requireRole } from '../middleware/auth.js';
 import { badRequest, notFound } from '../utils/errors.js';
-import { decrypt } from '../utils/crypto.js';
 import { audit } from '../services/audit.js';
 import {
   createSchema, updateSchema, createCandidate, updateCandidate, listCandidates, exportRows,
@@ -107,16 +106,7 @@ router.get('/:id', async (req, res) => {
 
 router.patch('/:id', editor, validate(updateSchema), async (req, res) => {
   const c = await updateCandidate(Number(req.params.id), req.body, { userId: req.user.id });
-  if (req.body.bsn !== undefined) await audit(req.user.id, 'update_bsn', 'candidate', c.id);
   res.json(publicCandidate(c));
-});
-
-// Full BSN: admins only, every view is written to the audit log.
-router.get('/:id/bsn', requireRole('admin'), async (req, res) => {
-  const c = await one('SELECT bsn_encrypted FROM candidates WHERE id = $1', [Number(req.params.id)]);
-  if (!c) throw notFound();
-  await audit(req.user.id, 'view_bsn', 'candidate', Number(req.params.id));
-  res.json({ bsn: c.bsn_encrypted ? decrypt(c.bsn_encrypted) : null });
 });
 
 router.get('/:id/matches', async (req, res) => {
@@ -146,7 +136,7 @@ router.get('/:id/data-export', requireRole('admin'), async (req, res) => {
   const conv = await one('SELECT * FROM conversations WHERE candidate_id = $1', [id]);
   const data = {
     exported_at: new Date().toISOString(),
-    candidate: { ...publicCandidate(c), bsn: c.bsn_encrypted ? decrypt(c.bsn_encrypted) : null },
+    candidate: publicCandidate(c),
     files: await many('SELECT original_name, mime_type, size_bytes, source, created_at FROM candidate_files WHERE candidate_id = $1', [id]),
     messages: conv ? await many('SELECT direction, type, body, created_at FROM messages WHERE conversation_id = $1 ORDER BY created_at', [conv.id]) : [],
     submissions: await many('SELECT s.status, s.created_at, s.sent_at, a.name AS agency FROM submissions s LEFT JOIN agencies a ON a.id = s.agency_id WHERE candidate_id = $1', [id]),

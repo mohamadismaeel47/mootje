@@ -1,6 +1,5 @@
 import { z } from 'zod';
 import { one, many, query } from '../db/pool.js';
-import { encrypt, decrypt } from '../utils/crypto.js';
 import { normalizePhone, isValidPhone } from '../utils/phone.js';
 import { getSetting } from './settings.js';
 import { badRequest, conflict, notFound } from '../utils/errors.js';
@@ -29,9 +28,6 @@ export const candidateFields = {
   current_country: optText(100),
   current_city: optText(100),
   has_bsn: optBool,
-  bsn: z.string().trim().nullable().optional()
-    .transform((v) => (v ? v.replace(/\D/g, '') : v))
-    .refine((v) => !v || /^\d{8,9}$/.test(v), 'A BSN has 8 or 9 digits'),
   date_of_birth: optDate,
   age: z.coerce.number().int().min(14).max(100).nullable().optional(),
   languages: z.array(z.string().trim().min(1).max(40)).max(20).optional(),
@@ -56,7 +52,7 @@ export const candidateFields = {
 export const createSchema = z.object(candidateFields);
 export const updateSchema = z.object(candidateFields).partial();
 
-const COLUMNS = Object.keys(candidateFields).filter((k) => k !== 'bsn');
+const COLUMNS = Object.keys(candidateFields);
 const LEVELS_SQL = "ARRAY['none','basic','good','fluent']";
 
 export async function preparePhone(raw) {
@@ -76,15 +72,9 @@ export function ageFromDob(dob) {
   return age >= 14 && age <= 100 ? age : null;
 }
 
-// Strip the encrypted BSN. Callers get a masked hint only; the full number has its own audited admin endpoint.
+// Only "has a valid BSN" (yes/no) is stored. The BSN number itself is never collected.
 export function publicCandidate(c) {
-  if (!c) return c;
-  const { bsn_encrypted, ...rest } = c;
-  let bsnHint = null;
-  if (bsn_encrypted) {
-    try { bsnHint = `•••••${decrypt(bsn_encrypted).slice(-3)}`; } catch { bsnHint = 'stored'; }
-  }
-  return { ...rest, bsn_stored: !!bsn_encrypted, bsn_hint: bsnHint };
+  return c;
 }
 
 export async function findByPhone(phone) {
@@ -100,7 +90,6 @@ export async function createCandidate(data, { userId, source = 'manual' } = {}) 
   const cols = COLUMNS.filter((k) => row[k] !== undefined);
   const values = cols.map((k) => row[k]);
   cols.push('source'); values.push(source);
-  if (data.bsn) { cols.push('bsn_encrypted'); values.push(encrypt(data.bsn)); }
   if (data.consent_given) { cols.push('consent_at', 'consent_source'); values.push(new Date(), source); }
   const placeholders = cols.map((_, i) => `$${i + 1}`);
   const created = await one(
@@ -131,10 +120,6 @@ export async function updateCandidate(id, data, { userId } = {}) {
     if (row[k] === undefined) continue;
     values.push(row[k]);
     sets.push(`${k} = $${values.length}`);
-  }
-  if (data.bsn !== undefined) {
-    values.push(data.bsn ? encrypt(data.bsn) : null);
-    sets.push(`bsn_encrypted = $${values.length}`);
   }
   if (data.consent_given === true && !current.consent_given) sets.push('consent_at = now()', "consent_source = COALESCE(consent_source, 'manual')");
   if (data.consent_given === false) sets.push('consent_at = NULL');

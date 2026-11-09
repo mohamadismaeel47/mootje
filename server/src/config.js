@@ -25,7 +25,7 @@ export const config = {
   databaseUrl: required('DATABASE_URL', 'postgres://crm:crm_dev_pw@localhost:5432/recruitment_crm'),
   databaseSsl: process.env.DATABASE_SSL === 'true',
   jwtSecret: required('JWT_SECRET', env === 'production' ? undefined : 'dev-only-jwt-secret-change-me-0123456789'),
-  // 32 bytes, hex encoded (64 chars). Used to encrypt WhatsApp tokens and BSN numbers at rest.
+  // 32 bytes, hex encoded (64 chars). Used to encrypt WhatsApp tokens and other secrets at rest.
   encryptionKey: required('ENCRYPTION_KEY', env === 'production' ? undefined : '0'.repeat(64)),
   setupToken: process.env.SETUP_TOKEN || '',
   uploadDir: process.env.UPLOAD_DIR || path.resolve(__dirname, '../storage/uploads'),

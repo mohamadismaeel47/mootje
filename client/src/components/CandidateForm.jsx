@@ -30,9 +30,8 @@ export default function CandidateForm({ value, onChange, disabled, isAdmin, erro
         {text('current_country', 'Current country')}
         {text('date_of_birth', 'Date of birth', { type: 'date' })}
         <Field label="Age"><input type="number" min="14" max="100" value={value.age ?? ''} disabled={disabled} onChange={(e) => onChange('age', e.target.value === '' ? null : Number(e.target.value))} /></Field>
-        {bool('has_bsn', 'Has a valid BSN')}
-        <Field label="BSN number" hint={isAdmin ? (value.bsn_stored ? `Stored encrypted (${value.bsn_hint}). Type a new number to replace it.` : 'Optional. Only store this if you are legally allowed to (see README).') : 'Only admins can see or edit the BSN.'} error={errors.bsn}>
-          <input type="text" inputMode="numeric" autoComplete="off" disabled={disabled || !isAdmin} value={value.bsn ?? ''} placeholder={value.bsn_stored ? value.bsn_hint : ''} onChange={(e) => onChange('bsn', e.target.value)} />
+        <Field label="Has a valid BSN" hint="Only yes/no is stored. Never ask for or save the BSN number itself.">
+          <TriState value={value.has_bsn} disabled={disabled} onChange={(v) => onChange('has_bsn', v)} />
         </Field>
       </div>
 
@@ -87,6 +86,5 @@ export function toPayload(form) {
     'previous_jobs', 'desired_job', 'availability', 'available_from', 'notes', 'status', 'consent_given'];
   for (const k of keys) if (form[k] !== undefined) out[k] = form[k] === '' ? null : form[k];
   if (form.languages !== undefined) out.languages = Array.isArray(form.languages) ? form.languages : String(form.languages).split(',').map((s) => s.trim()).filter(Boolean);
-  if (form.bsn) out.bsn = form.bsn;
   return out;
 }

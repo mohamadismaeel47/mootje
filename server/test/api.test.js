@@ -32,13 +32,15 @@ test('auth: setup only once, login, csrf header, roles', async () => {
 
 test('candidates: create, duplicate phone, update, status history, search, filters', async () => {
   const c = await admin.post('/api/candidates').send({
-    full_name: 'Anna Kowalska', phone: '06 1234 5678', email: 'Anna@Example.com', driving_licence: true, forklift: true, english_level: 'good', bsn: '123456782',
+    full_name: 'Anna Kowalska', phone: '06 1234 5678', email: 'Anna@Example.com', driving_licence: true, forklift: true, english_level: 'good', bsn: '123456782', has_bsn: true,
   });
   assert.equal(c.status, 201, JSON.stringify(c.body));
   assert.equal(c.body.phone, '31612345678');
   assert.equal(c.body.email, 'anna@example.com');
-  assert.equal(c.body.bsn_encrypted, undefined, 'encrypted bsn must never be returned');
-  assert.equal(c.body.bsn_stored, true);
+  assert.equal(c.body.has_bsn, true);
+  assert.equal(c.body.bsn, undefined, 'the BSN number is never stored');
+  const row = (await pool.query('SELECT * FROM candidates WHERE id = $1', [c.body.id])).rows[0];
+  assert.ok(!JSON.stringify(row).includes('123456782'));
 
   const dup = await admin.post('/api/candidates').send({ full_name: 'Other', phone: '+31 6 12345678' });
   assert.equal(dup.status, 409);
@@ -53,8 +55,7 @@ test('candidates: create, duplicate phone, update, status history, search, filte
   assert.equal(detail.body.history.length, 2);
   assert.equal(detail.body.history[0].to_status, 'available');
 
-  const bsn = await admin.get(`/api/candidates/${c.body.id}/bsn`);
-  assert.equal(bsn.body.bsn, '123456782');
+  assert.equal((await admin.get(`/api/candidates/${c.body.id}/bsn`)).status, 404);
 
   await admin.post('/api/candidates').send({ full_name: 'Jan Jansen', phone: '+48600100200' });
   assert.equal((await admin.get('/api/candidates?q=anna')).body.total, 1);

@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import {
   ArrowLeft, MessageCircle, Trash2, FileDown, Check, AlertCircle, Loader2, Upload, FileText, ExternalLink, Download,
-  Send, Target, History, UserRound, Paperclip, Eye, ShieldAlert, CheckCircle2, XCircle, HelpCircle,
+  Send, Target, History, UserRound, Paperclip, CheckCircle2, XCircle, HelpCircle,
 } from 'lucide-react';
 import { api, fmtDate, fmtDateTime, fmtPhone, STATUS_LABELS } from '../api.js';
 import {
@@ -104,11 +104,10 @@ export default function CandidateDetail() {
 // Profile form with automatic saving.
 function Profile({ candidate, onSaved }) {
   const { can, user } = useAuth();
-  const [form, setForm] = useState(() => ({ ...candidate, phone_input: fmtPhone(candidate.phone), bsn: '' }));
+  const [form, setForm] = useState(() => ({ ...candidate, phone_input: fmtPhone(candidate.phone) }));
   const [dirty, setDirty] = useState({});
   const [state, setState] = useState('idle');
   const [errors, setErrors] = useState({});
-  const [bsn, setBsn] = useState(null);
   const timer = useRef(null);
   const editable = can('recruiter');
 
@@ -118,7 +117,6 @@ function Profile({ candidate, onSaved }) {
     setState('saving');
     try {
       const payload = toPayload(Object.fromEntries(keys.map((k) => [k, fields[k]])));
-      if (keys.includes('bsn')) payload.bsn = fields.bsn || null;
       await api.patch(`/candidates/${candidate.id}`, payload);
       setDirty((d) => { const n = { ...d }; for (const k of keys) if (n[k] === fields[k]) delete n[k]; return n; });
       setErrors({});
@@ -135,8 +133,6 @@ function Profile({ candidate, onSaved }) {
     clearTimeout(timer.current);
     if (!Object.keys(dirty).length) return undefined;
     const fields = { ...dirty };
-    // BSN is only saved when complete, to avoid saving half numbers.
-    if ('bsn' in fields && fields.bsn && !/^\d{8,9}$/.test(fields.bsn.replace(/\D/g, ''))) delete fields.bsn;
     timer.current = setTimeout(() => save(fields), 900);
     return () => clearTimeout(timer.current);
   }, [dirty, save]);
@@ -172,17 +168,6 @@ function Profile({ candidate, onSaved }) {
               <div className="row between"><span className="muted">Mode</span><span className={`badge ${candidate.conversation.mode === 'auto' ? 'blue' : 'amber'}`}>{candidate.conversation.mode === 'auto' ? 'Automatic' : 'Manual'}</span></div>
               <div className="row between"><span className="muted">Status</span><span>{candidate.conversation.status.replace('_', ' ')}</span></div>
               <div className="row between"><span className="muted">Last message</span><span>{fmtDateTime(candidate.conversation.last_message_at)}</span></div>
-            </div>
-          </div>
-        )}
-        {user.role === 'admin' && candidate.bsn_stored && (
-          <div className="card">
-            <div className="card-head"><h3>BSN</h3></div>
-            <div className="card-body stack">
-              <p className="small muted"><ShieldAlert size={14} style={{ verticalAlign: -2 }} /> Stored encrypted. Every view is logged.</p>
-              {bsn ? <code style={{ fontSize: 16 }}>{bsn}</code> : (
-                <button type="button" className="btn sm" style={{ alignSelf: 'flex-start' }} onClick={async () => setBsn((await api.get(`/candidates/${candidate.id}/bsn`)).bsn)}><Eye size={14} /> Show BSN</button>
-              )}
             </div>
           </div>
         )}
