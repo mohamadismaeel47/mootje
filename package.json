@@ -13,5 +13,8 @@
     "start": "npm --prefix server start",
     "test": "npm --prefix server test",
     "create-admin": "npm --prefix server run create-admin"
+  },
+  "engines": {
+    "node": "22.x"
   }
 }

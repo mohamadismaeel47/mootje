@@ -54,8 +54,9 @@ For development with hot reload run `npm run dev:server` and `npm run dev:client
 
 ## Deploying
 
-**Easiest:** use the included Render Blueprint (`render.yaml`) – see the Dutch guide
-[`docs/ONLINE-ZETTEN.md`](docs/ONLINE-ZETTEN.md). In production `SETUP_TOKEN` is required, so nobody else can create
+**Railway:** `railway.json` contains the build/start commands – see the Dutch guide
+[`docs/RAILWAY.md`](docs/RAILWAY.md) (database, volume, variables, custom domain).
+**Render:** use the Blueprint (`render.yaml`) – see [`docs/ONLINE-ZETTEN.md`](docs/ONLINE-ZETTEN.md). In production `SETUP_TOKEN` is required, so nobody else can create
 the first account.
 
 Any host that runs Node.js and gives you **https** works (Render, Railway, Fly.io, a VPS, …). Meta requires an https

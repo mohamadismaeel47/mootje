@@ -22,8 +22,9 @@ export const config = {
   isTest: env === 'test',
   port: Number(process.env.PORT || 4000),
   // Public URL of this server, used to show the webhook URL in settings.
-  // Render sets RENDER_EXTERNAL_URL automatically.
-  publicUrl: process.env.PUBLIC_URL || process.env.RENDER_EXTERNAL_URL || '',
+  // Render and Railway set their own public address automatically; PUBLIC_URL (your own domain) wins.
+  publicUrl: process.env.PUBLIC_URL || process.env.RENDER_EXTERNAL_URL
+    || (process.env.RAILWAY_PUBLIC_DOMAIN ? `https://${process.env.RAILWAY_PUBLIC_DOMAIN}` : ''),
   databaseUrl: required('DATABASE_URL', 'postgres://crm:crm_dev_pw@localhost:5432/recruitment_crm'),
   databaseSsl: process.env.DATABASE_SSL === 'true',
   jwtSecret: required('JWT_SECRET', env === 'production' ? undefined : 'dev-only-jwt-secret-change-me-0123456789'),
