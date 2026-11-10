@@ -266,6 +266,11 @@ export async function handleIncoming(conversationId, message) {
     return unclear(ctx, t(lang, 'consent_explain'));
   }
 
+  // Answer to a vacancy offer or a "still looking for work?" message sent by the recruiter.
+  if (step === 'vacancy_offer' || step === 'checkin') {
+    return handleOutreachAnswer(ctx, step, text);
+  }
+
   if (step === 'all' || (step.startsWith('q:') && state.list_keys)) {
     const r = await handleListAnswer(ctx, text, step);
     if (r) return r;
@@ -430,4 +435,59 @@ export async function resume(conversationId) {
   const ctx = { conv, cand, lang, state: { attempts: 0, ...(conv.bot_state || {}) }, send: (body) => sendMessage(conv, body, { sender: 'bot' }) };
   await withConversationLock(conv.id, () => askNext(ctx));
   return { sent: true };
+}
+
+// YES/NO answer to a vacancy offer or a check-in. Afterwards the conversation returns to where it was.
+async function handleOutreachAnswer(ctx, step, text) {
+  const { conv, cand, lang, state } = ctx;
+  const yn = parseYesNo(text);
+  if (yn === null) {
+    state.attempts = (state.attempts || 0) + 1;
+    if (state.attempts >= MAX_ATTEMPTS) {
+      await flagAttention(conv, cand, step === 'vacancy_offer'
+        ? 'De kandidaat gaf geen duidelijk antwoord op een vacature. Lees het gesprek.'
+        : 'De kandidaat gaf geen duidelijk antwoord op de vraag of hij nog werk zoekt.');
+      await saveState(conv.id, { step: state.resume_step || 'completed', state: { ...state, attempts: 0 } });
+      return { handled: true, action: 'outreach_unclear' };
+    }
+    await saveState(conv.id, { state });
+    await ctx.send(t(lang, 'yes_no_please'));
+    return { handled: true, action: 'unclear' };
+  }
+  const name = cand.full_name || `+${cand.phone}`;
+  if (state.outreach_id) {
+    await query(`UPDATE outreach SET status = $2, answered_at = now() WHERE id = $1`, [state.outreach_id, yn ? 'interested' : 'declined']);
+  }
+  if (step === 'vacancy_offer') {
+    const vacancy = state.offer_vacancy_id ? await one('SELECT * FROM vacancies WHERE id = $1', [state.offer_vacancy_id]) : null;
+    if (yn) {
+      if (vacancy?.agency_id) {
+        const { computeMatch } = await import('../matching.js');
+        await query(`INSERT INTO submissions(candidate_id, vacancy_id, agency_id, match_score, notes) VALUES ($1,$2,$3,$4,$5)
+                     ON CONFLICT (candidate_id, vacancy_id) DO NOTHING`,
+          [cand.id, vacancy.id, vacancy.agency_id, computeMatch(cand, vacancy).score, 'Kandidaat zei JA via WhatsApp']);
+      }
+      await notify('vacancy_interest', `${name} heeft interesse in ${vacancy?.title || 'een vacature'}`,
+        vacancy?.agency_id ? 'Er staat een voorstel klaar. Keur het goed om de kandidaat naar het bureau te sturen.' : 'Neem contact op met de kandidaat.',
+        vacancy ? `/vacancies/${vacancy.id}` : `/candidates/${cand.id}`);
+      await ctx.send(t(lang, 'vacancy_yes'));
+    } else {
+      await notify('vacancy_declined', `${name} heeft geen interesse in ${vacancy?.title || 'een vacature'}`, null, `/candidates/${cand.id}`);
+      await ctx.send(t(lang, 'vacancy_no'));
+    }
+  } else if (yn) {
+    if (!['sent_to_agency', 'interview', 'placed'].includes(cand.status)) await setCandidateStatus(cand, 'available');
+    await ctx.send(t(lang, 'checkin_yes'));
+  } else {
+    await setCandidateStatus(cand, 'not_interested');
+    await notify('checkin_no', `${name} zoekt geen werk meer`, 'De status is veranderd naar "Geen interesse".', `/candidates/${cand.id}`);
+    await ctx.send(t(lang, 'checkin_no'));
+  }
+  const resume = state.resume_step || 'completed';
+  const { outreach_id, offer_vacancy_id, ...rest } = state;
+  ctx.state = { ...rest, attempts: 0 };
+  await saveState(conv.id, { step: resume, state: ctx.state, status: resume === 'completed' ? 'completed' : 'in_progress' });
+  // Registration not finished yet and the candidate is still interested: continue with the questions.
+  if (yn && resume.startsWith('q:')) await askNext(ctx);
+  return { handled: true, action: yn ? 'outreach_yes' : 'outreach_no' };
 }

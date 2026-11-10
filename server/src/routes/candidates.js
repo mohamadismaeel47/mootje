@@ -13,6 +13,10 @@ import {
 import { toXlsx, toCsv, templateXlsx, parseUpload } from '../services/spreadsheet.js';
 import { saveFile, deleteCandidateFiles } from '../services/storage.js';
 import { matchCandidateToVacancies } from '../services/matching.js';
+import { checkinCandidates, sendOutreach } from '../services/outreach.js';
+import { windowOpen } from '../services/whatsapp.js';
+import { getSetting } from '../services/settings.js';
+import { z } from 'zod';
 
 const router = Router();
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: config.maxUploadMb * 1024 * 1024, files: 1 } });
@@ -79,6 +83,25 @@ router.post('/import', editor, upload.single('file'), async (req, res) => {
     }
   }
   await audit(req.user.id, 'import_candidates', 'candidate', null, `${result.created} created`);
+  res.json(result);
+});
+
+// "Are you still looking for work?" – preview and send to all candidates who are not placed.
+router.get('/checkin-preview', editor, async (_req, res) => {
+  const list = await checkinCandidates();
+  const inWindow = list.filter((c) => windowOpen(c.last_inbound_at)).length;
+  res.json({
+    total: list.length,
+    in_window: inWindow,
+    outside_window: list.length - inWindow,
+    template_set: !!(await getSetting('bot.checkin_template_name')),
+  });
+});
+
+router.post('/checkin', editor, validate(z.object({ confirm: z.literal(true, { message: 'Bevestig dat je het bericht wilt versturen' }) })), async (req, res) => {
+  const list = await checkinCandidates();
+  const result = await sendOutreach({ candidates: list, kind: 'checkin', userId: req.user.id });
+  await audit(req.user.id, 'send_checkin', 'candidate', null, `${result.sent} verstuurd`);
   res.json(result);
 });
 

@@ -321,3 +321,56 @@ test('all-at-once mode: unreadable reply twice falls back to one by one', async 
   assert.match(lastSent(), /one question at a time\.\n\nQuestion 1 of 12: What is your full name\?/);
   await admin.put('/api/settings').send({ values: { 'bot.question_mode': 'one' } });
 });
+
+test('vacancy offer via WhatsApp: YES creates a proposal, window rules respected', async () => {
+  const ag = (await admin.post('/api/agencies').send({ name: 'Offer Bureau', email: 'o@b.example' })).body;
+  const vac = (await admin.post('/api/vacancies').send({ title: 'Orderpicker', agency_id: ag.id, location: 'Tilburg', salary: '€15 per uur' })).body;
+  const from = '48600700100';
+  await deliver(payload(from, 'hello'));
+  const cand = (await pool.query('SELECT * FROM candidates WHERE phone = $1', [from])).rows[0];
+  // A second candidate whose 24-hour window is closed and no template is configured
+  const from2 = '48600700200';
+  await deliver(payload(from2, 'hello'));
+  const cand2 = (await pool.query('SELECT * FROM candidates WHERE phone = $1', [from2])).rows[0];
+  await pool.query(`UPDATE conversations SET last_inbound_at = now() - interval '30 hours' WHERE candidate_id = $1`, [cand2.id]);
+
+  const r = await admin.post(`/api/vacancies/${vac.id}/send-to-candidates`).send({ candidate_ids: [cand.id, cand2.id], confirm: true });
+  assert.equal(r.status, 200, JSON.stringify(r.body));
+  assert.equal(r.body.sent, 1);
+  assert.equal(r.body.needs_template, 1);
+  assert.match(lastSent(), /\*Orderpicker\*/);
+  assert.match(lastSent(), /Tilburg/);
+
+  await deliver(payload(from, 'yes'));
+  assert.match(lastSent(), /recruiter will contact you soon/);
+  const sub = (await pool.query('SELECT * FROM submissions WHERE candidate_id = $1 AND vacancy_id = $2', [cand.id, vac.id])).rows[0];
+  assert.equal(sub.status, 'proposed', 'proposal is ready, but not sent without approval');
+  const o = (await pool.query(`SELECT status FROM outreach WHERE candidate_id = $1 AND kind = 'vacancy' AND status <> 'failed'`, [cand.id])).rows[0];
+  assert.equal(o.status, 'interested');
+  const matches = (await admin.get(`/api/vacancies/${vac.id}/matches`)).body;
+  assert.equal(matches.find((m) => m.candidate.id === cand.id).offer.status, 'interested');
+
+  // With a template configured the closed-window candidate gets the template
+  await admin.put('/api/settings').send({ values: { 'bot.vacancy_template_name': 'job_offer' } });
+  const r2 = await admin.post(`/api/vacancies/${vac.id}/send-to-candidates`).send({ candidate_ids: [cand2.id], confirm: true });
+  assert.equal(r2.body.sent, 1);
+  const call = graph.calls.at(-1);
+  assert.equal(call.body.template.name, 'job_offer');
+  assert.deepEqual(call.body.template.components[0].parameters.map((p) => p.text), ['there', 'Orderpicker', 'Tilburg']);
+});
+
+test('check-in "still looking for work?": NO sets not interested, not asked twice in 7 days', async () => {
+  const from = '48600700300';
+  await deliver(payload(from, 'hello'));
+  const cand = (await pool.query('SELECT * FROM candidates WHERE phone = $1', [from])).rows[0];
+  const prev = (await admin.get('/api/candidates/checkin-preview')).body;
+  assert.ok(prev.total >= 1);
+  const r = await admin.post('/api/candidates/checkin').send({ confirm: true });
+  assert.equal(r.status, 200);
+  assert.ok(r.body.results.some((x) => x.candidate_id === cand.id && x.ok));
+  await deliver(payload(from, 'nee'));
+  const after = (await pool.query('SELECT status FROM candidates WHERE id = $1', [cand.id])).rows[0];
+  assert.equal(after.status, 'not_interested');
+  const again = (await admin.post('/api/candidates/checkin').send({ confirm: true })).body;
+  assert.ok(!again.results.some((x) => x.candidate_id === cand.id), 'not asked again');
+});

@@ -20,6 +20,21 @@ export function requirementTags(v) {
   ].filter(Boolean);
 }
 
+// Short sentence: who is this vacancy looking for?
+export function vacancySummary(v) {
+  const must = [
+    v.req_driving_licence && 'rijbewijs', v.req_own_car && 'eigen auto', v.req_forklift && 'heftruckcertificaat',
+    v.req_ept && 'EPT-certificaat', v.req_reach_truck && 'reachtruckcertificaat', v.req_experience && 'ervaring in magazijn/productie',
+  ].filter(Boolean);
+  const parts = [`Gezocht: ${v.positions > 1 ? `${v.positions}× ` : ''}${v.title}${v.location ? ` in ${v.location}` : ''}.`];
+  if (must.length) parts.push(`Moet hebben: ${must.join(', ')}.`);
+  if (v.min_english_level && v.min_english_level !== 'none') parts.push(`Engels: minimaal ${ENGLISH_LABELS[v.min_english_level].toLowerCase()}.`);
+  if (v.required_languages?.length) parts.push(`Talen: ${v.required_languages.join(', ')}.`);
+  if (v.required_experience) parts.push(`Ervaring: ${v.required_experience}.`);
+  if (!must.length && !(v.min_english_level && v.min_english_level !== 'none') && !v.required_languages?.length && !v.required_experience) parts.push('Geen speciale eisen.');
+  return parts.join(' ');
+}
+
 export default function Vacancies() {
   const [q, setQ] = useState('');
   const [status, setStatus] = useState('open');
@@ -46,15 +61,15 @@ export default function Vacancies() {
         {loading && !data ? <Spinner /> : data?.length === 0 ? <Empty icon={Briefcase} title="Geen vacatures">Maak je eerste vacature.</Empty> : (
           <div className="table-wrap">
             <table className="table">
-              <thead><tr><th>Functie</th><th>Bureau</th><th>Eisen</th><th>Plaatsen</th><th>Kandidaten</th><th>Status</th></tr></thead>
+              <thead><tr><th>Functie</th><th>Wie zoeken ze?</th><th>Bureau</th><th>Passende kandidaten</th><th>Plaatsen</th><th>Status</th></tr></thead>
               <tbody>
                 {data?.map((v) => (
                   <tr key={v.id} className="click" onClick={() => navigate(`/vacancies/${v.id}`)}>
                     <td><Link to={`/vacancies/${v.id}`} className="name" onClick={(e) => e.stopPropagation()}>{v.title}</Link><div className="sub">{[v.location, v.salary, v.working_hours].filter(Boolean).join(' · ')}</div></td>
+                    <td className="sub" style={{ maxWidth: 360 }}>{vacancySummary(v)}</td>
                     <td className="sub">{v.agency_name || '—'}</td>
-                    <td><div className="tags">{requirementTags(v).map((t) => <span key={t} className="tag">{t}</span>)}</div></td>
+                    <td>{v.good_matches == null ? '—' : <span className={`badge ${v.good_matches > 0 ? 'green' : ''}`}>{v.good_matches} passend</span>}</td>
                     <td>{v.positions}</td>
-                    <td>{v.submission_count}</td>
                     <td><VacancyStatus status={v.status} /></td>
                   </tr>
                 ))}

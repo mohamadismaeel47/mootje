@@ -5,7 +5,8 @@ import { validate } from '../middleware/validate.js';
 import { requireRole } from '../middleware/auth.js';
 import { notFound } from '../utils/errors.js';
 import { audit } from '../services/audit.js';
-import { matchVacancyToCandidates } from '../services/matching.js';
+import { matchVacancyToCandidates, goodMatchCounts } from '../services/matching.js';
+import { sendOutreach } from '../services/outreach.js';
 
 const router = Router();
 const t = (max) => z.string().trim().max(max).nullable().optional().transform((v) => (v === '' ? null : v));
@@ -38,12 +39,14 @@ router.get('/', async (req, res) => {
   if (req.query.q) { values.push(`%${req.query.q}%`); where.push(`(v.title ILIKE $${values.length} OR v.location ILIKE $${values.length})`); }
   if (req.query.status) { values.push(String(req.query.status)); where.push(`v.status = $${values.length}`); }
   if (req.query.agency_id) { values.push(Number(req.query.agency_id)); where.push(`v.agency_id = $${values.length}`); }
-  res.json(await many(`
+  const rows = await many(`
     SELECT v.*, a.name AS agency_name,
       (SELECT count(*) FROM submissions s WHERE s.vacancy_id = v.id) AS submission_count
     FROM vacancies v LEFT JOIN agencies a ON a.id = v.agency_id
     ${where.length ? `WHERE ${where.join(' AND ')}` : ''}
-    ORDER BY CASE v.status WHEN 'open' THEN 0 WHEN 'paused' THEN 1 ELSE 2 END, v.created_at DESC`, values));
+    ORDER BY CASE v.status WHEN 'open' THEN 0 WHEN 'paused' THEN 1 ELSE 2 END, v.created_at DESC`, values);
+  const counts = await goodMatchCounts(rows);
+  res.json(rows.map((v) => ({ ...v, good_matches: counts[v.id] })));
 });
 
 router.get('/:id', async (req, res) => {
@@ -59,6 +62,19 @@ router.get('/:id/matches', async (req, res) => {
   const v = await one('SELECT * FROM vacancies WHERE id = $1', [Number(req.params.id)]);
   if (!v) throw notFound('Vacature niet gevonden');
   res.json(await matchVacancyToCandidates(v, { minScore: Number(req.query.min_score) || 0 }));
+});
+
+// Send this vacancy via WhatsApp to the selected candidates (they answer YES/NO).
+router.post('/:id/send-to-candidates', requireRole('recruiter'), validate(z.object({
+  candidate_ids: z.array(z.coerce.number().int().positive()).min(1).max(200),
+  confirm: z.literal(true, { message: 'Bevestig dat je de vacature wilt versturen' }),
+})), async (req, res) => {
+  const v = await one('SELECT * FROM vacancies WHERE id = $1', [Number(req.params.id)]);
+  if (!v) throw notFound('Vacature niet gevonden');
+  const candidates = await many(`SELECT * FROM candidates WHERE id = ANY($1) AND deletion_requested_at IS NULL`, [req.body.candidate_ids]);
+  const result = await sendOutreach({ candidates, kind: 'vacancy', vacancy: v, userId: req.user.id });
+  await audit(req.user.id, 'send_vacancy', 'vacancy', v.id, `${result.sent} verstuurd`);
+  res.json(result);
 });
 
 router.post('/', requireRole('recruiter'), validate(schema), async (req, res) => {

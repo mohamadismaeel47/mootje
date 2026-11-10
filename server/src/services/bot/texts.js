@@ -31,6 +31,13 @@ export const TEXTS = {
     all_unclear: 'Sorry, I could not read your answers. Please write the number of the question before each answer, like in the example.',
     all_fallback: 'No problem, we will do it one question at a time.',
     all_more: 'Thank you, I saved your answers! I still need a few more answers:',
+    vacancy_offer: 'Hi{name}! We have a job that may suit you:\n\n*{title}*{details}\n\nAre you interested? Please answer YES or NO.',
+    vacancy_yes: 'Great! A recruiter will contact you soon with more information about this job.',
+    vacancy_no: 'Okay, thank you for letting us know. We will keep looking for a job that suits you.',
+    checkin: 'Hi{name}! Are you still looking for a job? Please answer YES or NO.',
+    checkin_yes: 'Great, thank you! We will contact you as soon as we have a suitable job.',
+    checkin_no: 'Okay, thank you for letting us know. Good luck! If you are looking for work again, just send us a message.',
+    yes_no_please: 'Sorry, I did not understand. Please answer YES or NO.',
   },
   nl: {
     intro: 'Hoi! Mijn naam is {recruiter}. Klopt het dat je op zoek bent naar werk?',
@@ -59,6 +66,13 @@ export const TEXTS = {
     all_unclear: 'Sorry, ik kon je antwoorden niet lezen. Zet het nummer van de vraag voor elk antwoord, zoals in het voorbeeld.',
     all_fallback: 'Geen probleem, we doen het vraag voor vraag.',
     all_more: 'Bedankt, ik heb je antwoorden opgeslagen! Ik heb nog een paar antwoorden nodig:',
+    vacancy_offer: 'Hoi{name}! We hebben werk dat misschien bij je past:\n\n*{title}*{details}\n\nHeb je interesse? Antwoord JA of NEE.',
+    vacancy_yes: 'Top! Een recruiter neemt snel contact met je op met meer informatie over deze baan.',
+    vacancy_no: 'Oké, bedankt dat je het laat weten. We blijven zoeken naar werk dat bij je past.',
+    checkin: 'Hoi{name}! Zoek je nog werk? Antwoord JA of NEE.',
+    checkin_yes: 'Top, bedankt! We nemen contact met je op zodra we passend werk hebben.',
+    checkin_no: 'Oké, bedankt dat je het laat weten. Succes! Zoek je later weer werk, stuur ons dan gewoon een bericht.',
+    yes_no_please: 'Sorry, ik begreep het niet. Antwoord JA of NEE.',
   },
 };
 

@@ -99,13 +99,27 @@ export async function matchVacancyToCandidates(vacancy, { minScore = 0, limit = 
   );
   const submitted = new Map((await many('SELECT candidate_id, status FROM submissions WHERE vacancy_id = $1', [vacancy.id]))
     .map((s) => [s.candidate_id, s.status]));
+  const offers = new Map((await many(`SELECT DISTINCT ON (candidate_id) candidate_id, status, created_at FROM outreach
+                                      WHERE kind = 'vacancy' AND vacancy_id = $1 ORDER BY candidate_id, created_at DESC`, [vacancy.id]))
+    .map((o) => [o.candidate_id, { status: o.status, at: o.created_at }]));
   return candidates
     .map((c) => ({
       candidate: { id: c.id, full_name: c.full_name, phone: c.phone, status: c.status, current_city: c.current_city },
       submission_status: submitted.get(c.id) || null,
+      offer: offers.get(c.id) || null,
       ...computeMatch(c, vacancy),
     }))
     .filter((m) => m.score >= minScore)
     .sort((a, b) => b.score - a.score)
     .slice(0, limit);
+}
+
+// Number of good matches (score >= 75 and no blocking requirement) per open vacancy.
+export async function goodMatchCounts(vacancies) {
+  const candidates = await many('SELECT * FROM candidates WHERE NOT (status = ANY($1)) LIMIT 2000', [BLOCKED_STATUSES]);
+  const out = {};
+  for (const v of vacancies) {
+    out[v.id] = v.status === 'open' ? candidates.filter((c) => { const m = computeMatch(c, v); return m.score >= 75 && m.eligible; }).length : null;
+  }
+  return out;
 }

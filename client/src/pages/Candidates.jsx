@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
-import { Search, UserPlus, Download, Upload, FileSpreadsheet, Users, Paperclip } from 'lucide-react';
+import { Search, UserPlus, Download, Upload, FileSpreadsheet, Users, Paperclip, MessageCircleQuestionMark } from 'lucide-react';
 import { api, qs, fmtDate, fmtPhone, STATUS_LABELS, STATUSES, ENGLISH_LABELS } from '../api.js';
 import { useAsync, useDebounced, Spinner, ErrorBox, StatusBadge, Empty, Modal, Alert, useToast, downloadUrl } from '../components/ui.jsx';
 import CandidateForm, { toPayload } from '../components/CandidateForm.jsx';
@@ -24,6 +24,7 @@ export default function Candidates() {
   const flags = FLAGS.filter(([k]) => params.get(k) === 'true').map(([k]) => k);
   const [showNew, setShowNew] = useState(params.get('new') === '1');
   const [showImport, setShowImport] = useState(false);
+  const [showCheckin, setShowCheckin] = useState(false);
 
   const filters = { q: dq, status, english_level: english, sort, ...Object.fromEntries(flags.map((f) => [f, 'true'])) };
   const { data, error, loading, reload } = useAsync(() => api.get(`/candidates${qs({ ...filters, page, limit: 25 })}`), [JSON.stringify(filters), page]);
@@ -49,6 +50,7 @@ export default function Candidates() {
         <div className="actions">
           <button type="button" className="btn" onClick={() => exportFile('xlsx')}><FileSpreadsheet size={16} /> Excel</button>
           <button type="button" className="btn" onClick={() => exportFile('csv')}><Download size={16} /> CSV</button>
+          {can('recruiter') && <button type="button" className="btn" onClick={() => setShowCheckin(true)}><MessageCircleQuestionMark size={16} /> Zoek je nog werk?</button>}
           {can('recruiter') && <button type="button" className="btn" onClick={() => setShowImport(true)}><Upload size={16} /> Importeren</button>}
           {can('recruiter') && <button type="button" className="btn primary" onClick={() => setShowNew(true)}><UserPlus size={16} /> Kandidaat toevoegen</button>}
         </div>
@@ -132,6 +134,7 @@ export default function Candidates() {
 
       {showNew && <NewCandidate isAdmin={user.role === 'admin'} onClose={() => { setShowNew(false); update({}); }} onCreated={(c) => navigate(`/candidates/${c.id}`)} />}
       {showImport && <ImportModal onClose={() => setShowImport(false)} onDone={() => reload()} />}
+      {showCheckin && <CheckinModal onClose={() => setShowCheckin(false)} onDone={() => reload(true)} />}
     </>
   );
 }
@@ -201,6 +204,47 @@ function ImportModal({ onClose, onDone }) {
             <b>{result.created}</b> kandidaten geïmporteerd. <b>{result.duplicates.length}</b> dubbele overgeslagen. <b>{result.errors.length}</b> rijen met fouten.
             {result.errors.slice(0, 8).map((e) => <div key={e.line} className="small">Rij {e.line}: {e.error}</div>)}
             {result.duplicates.slice(0, 8).map((d) => <div key={d.line} className="small">Rij {d.line}: telefoon {d.phone} bestaat al</div>)}
+          </Alert>
+        )}
+      </div>
+    </Modal>
+  );
+}
+
+// "Are you still looking for work?" to every candidate who is not placed.
+function CheckinModal({ onClose, onDone }) {
+  const { data: preview, error: previewError } = useAsync(() => api.get('/candidates/checkin-preview'), []);
+  const [busy, setBusy] = useState(false);
+  const [result, setResult] = useState(null);
+  const [error, setError] = useState(null);
+  const send = async () => {
+    setBusy(true); setError(null);
+    try { const r = await api.post('/candidates/checkin', { confirm: true }); setResult(r); onDone(); } catch (e) { setError(e); } finally { setBusy(false); }
+  };
+  const reachable = preview ? preview.in_window + (preview.template_set ? preview.outside_window : 0) : 0;
+  return (
+    <Modal title="Vragen of kandidaten nog werk zoeken" onClose={onClose} footer={result
+      ? <button type="button" className="btn primary" onClick={onClose}>Sluiten</button>
+      : <><button type="button" className="btn" onClick={onClose}>Annuleren</button><button type="button" className="btn primary" disabled={busy || !preview || reachable === 0} onClick={send}>{busy ? 'Bezig met versturen…' : `Versturen naar ${reachable}`}</button></>}>
+      <div className="stack">
+        <ErrorBox error={previewError || error} />
+        {!result && preview && (
+          <>
+            <p>Alle kandidaten die <b>nog niet geplaatst</b> zijn (en niet “geen interesse” hebben gezegd) krijgen dit bericht, in hun eigen taal:</p>
+            <div className="bubble out" style={{ alignSelf: 'stretch', maxWidth: 'none' }}>Hoi Anna! Zoek je nog werk? Antwoord JA of NEE.</div>
+            <ul className="small" style={{ margin: 0, paddingLeft: 18 }}>
+              <li><b>{preview.total}</b> kandidaten komen in aanmerking (wie de afgelopen 7 dagen al gevraagd is, slaan we over).</li>
+              <li><b>{preview.in_window}</b> schreven de afgelopen 24 uur zelf: zij krijgen een gewoon bericht.</li>
+              <li><b>{preview.outside_window}</b> schreven langer geleden: {preview.template_set ? 'zij krijgen je goedgekeurde template.' : <b>zij worden overgeslagen, omdat er nog geen template is ingesteld (Instellingen → Assistent).</b>}</li>
+            </ul>
+            <Alert type="info">JA → status wordt <b>Beschikbaar</b>. NEE → status wordt <b>Geen interesse</b> en je krijgt een melding.</Alert>
+          </>
+        )}
+        {result && (
+          <Alert type={result.sent ? 'success' : 'warn'}>
+            <b>{result.sent}</b> verstuurd.
+            {result.needs_template > 0 && <> <b>{result.needs_template}</b> overgeslagen (template nodig).</>}
+            {result.failed > 0 && <> <b>{result.failed}</b> mislukt.</>}
           </Alert>
         )}
       </div>

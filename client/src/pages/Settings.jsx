@@ -194,7 +194,7 @@ function BotTab({ s, reload }) {
         <div className="card-head"><h3>WhatsApp-assistent</h3></div>
         <div className="card-body">
           <SettingsForm s={s} reload={reload}
-            keys={['bot.enabled', 'bot.question_mode', 'bot.recruiter_name', 'bot.ask_consent', 'bot.offer_cv', 'general.default_country_code', 'bot.intro_template_name', 'bot.intro_template_language', 'bot.followup_template_name', 'bot.followup_template_language']}
+            keys={['bot.enabled', 'bot.question_mode', 'bot.recruiter_name', 'bot.ask_consent', 'bot.offer_cv', 'general.default_country_code', 'bot.intro_template_name', 'bot.intro_template_language', 'bot.followup_template_name', 'bot.followup_template_language', 'bot.vacancy_template_name', 'bot.vacancy_template_language', 'bot.checkin_template_name', 'bot.checkin_template_language']}
             options={{ 'bot.enabled': [['true', 'Aan – automatisch antwoorden'], ['false', 'Uit – alle gesprekken handmatig']], 'bot.question_mode': [['one', 'Eén vraag tegelijk (aanbevolen)'], ['all', 'Alle vragen in één bericht']], 'bot.ask_consent': [['true', 'Ja (aanbevolen)'], ['false', 'Nee']], 'bot.offer_cv': [['true', 'Ja'], ['false', 'Nee']] }}
             hints={{
               'bot.recruiter_name': 'Wordt gebruikt in “Hi! My name is …”',
@@ -202,6 +202,8 @@ function BotTab({ s, reload }) {
               'bot.intro_template_name': 'Goedgekeurde template voor als JIJ het gesprek start (verplicht van WhatsApp).',
               'bot.intro_template_language': 'Taalcode van die template, bijv. en of nl',
               'bot.followup_template_name': 'Goedgekeurde template voor herinneringen na 24 uur.',
+              'bot.vacancy_template_name': 'Maak in Meta een template met 3 variabelen, bijv.: “Hi {{1}}, we have a job for you: {{2}} in {{3}}. Are you interested? Answer YES or NO.”',
+              'bot.checkin_template_name': 'Maak in Meta een template met 1 variabele, bijv.: “Hi {{1}}, are you still looking for a job? Answer YES or NO.”',
             }} />
         </div>
       </div>

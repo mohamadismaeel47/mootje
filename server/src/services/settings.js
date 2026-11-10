@@ -21,6 +21,11 @@ export const DEFINITIONS = {
   'bot.followup_template_name':   { default: '', label: 'Template voor herinneringen (na 24 uur)' },
   'bot.followup_template_language': { default: 'en', label: 'Taalcode van de herinneringstemplate' },
 
+  'bot.vacancy_template_name':    { default: '', label: 'Template voor vacatures (na 24 uur)' },
+  'bot.vacancy_template_language': { default: 'en', label: 'Taalcode van de vacaturetemplate' },
+  'bot.checkin_template_name':    { default: '', label: 'Template "zoek je nog werk?" (na 24 uur)' },
+  'bot.checkin_template_language': { default: 'en', label: 'Taalcode van de "zoek je nog werk?"-template' },
+
   'general.default_country_code': { default: '31', label: 'Standaard landcode voor telefoonnummers' },
   'general.company_name':         { default: '', label: 'Bedrijfsnaam' },
   'privacy.retention_months':     { default: '24', label: 'Gegevens bewaren (maanden)' },
