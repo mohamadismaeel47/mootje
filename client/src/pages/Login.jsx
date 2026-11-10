@@ -6,7 +6,8 @@ import { Alert, Field, Spinner } from '../components/ui.jsx';
 
 export default function Login({ onLogin, redirect }) {
   const [status, setStatus] = useState(null);
-  const [form, setForm] = useState({ name: '', email: '', password: '', setupToken: '' });
+  const [form, setForm] = useState({ name: '', email: '', password: '', setupToken: '', code: '' });
+  const [needsCode, setNeedsCode] = useState(false);
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
   const navigate = useNavigate();
@@ -21,7 +22,9 @@ export default function Login({ onLogin, redirect }) {
     setError('');
     setBusy(true);
     try {
-      const r = setup ? await api.post('/auth/setup', form) : await api.post('/auth/login', { email: form.email, password: form.password });
+      const r = setup ? await api.post('/auth/setup', form)
+        : await api.post('/auth/login', { email: form.email, password: form.password, ...(needsCode ? { code: form.code } : {}) });
+      if (r.needs2fa) { setNeedsCode(true); return; }
       onLogin(r.user);
       navigate(redirect && redirect !== '/login' ? redirect : '/', { replace: true });
     } catch (err) {
@@ -58,6 +61,11 @@ export default function Login({ onLogin, redirect }) {
           {error && <Alert type="error">{error}</Alert>}
           {setup && <Field label="Je naam"><input type="text" value={form.name} onChange={set('name')} required autoFocus /></Field>}
           <Field label="E-mail"><input type="email" value={form.email} onChange={set('email')} required autoComplete="username" autoFocus={!setup} /></Field>
+          {needsCode && (
+            <Field label="Code uit je authenticator-app" hint="Open Google Authenticator of Microsoft Authenticator en typ de code van 6 cijfers.">
+              <input type="text" inputMode="numeric" autoComplete="one-time-code" maxLength={6} value={form.code} onChange={set('code')} required autoFocus />
+            </Field>
+          )}
           <Field label="Wachtwoord" hint={setup ? 'Minstens 10 tekens, met letters en cijfers.' : undefined}>
             <input type="password" value={form.password} onChange={set('password')} required autoComplete={setup ? 'new-password' : 'current-password'} />
           </Field>

@@ -6,7 +6,8 @@ import { HttpError, forbidden } from '../utils/errors.js';
 export const COOKIE = 'crm_session';
 
 export function issueSession(res, user) {
-  const token = jwt.sign({ sub: user.id, role: user.role }, config.jwtSecret, { expiresIn: `${config.sessionHours}h` });
+  // `tv` (token version) lets us end all sessions of a user at once, e.g. after a password change.
+  const token = jwt.sign({ sub: user.id, role: user.role, tv: user.token_version ?? 0 }, config.jwtSecret, { expiresIn: `${config.sessionHours}h` });
   res.cookie(COOKIE, token, {
     httpOnly: true,
     sameSite: 'lax',
@@ -30,9 +31,11 @@ export async function requireAuth(req, _res, next) {
   } catch {
     return next(new HttpError(401, 'Je sessie is verlopen. Log opnieuw in.'));
   }
-  const user = await one('SELECT id, email, name, role, active FROM users WHERE id = $1', [payload.sub]);
+  const user = await one('SELECT id, email, name, role, active, token_version, totp_enabled FROM users WHERE id = $1', [payload.sub]);
   if (!user || !user.active) return next(new HttpError(401, 'Log eerst in'));
-  req.user = user;
+  if ((payload.tv ?? 0) !== user.token_version) return next(new HttpError(401, 'Je bent uitgelogd. Log opnieuw in.'));
+  const { token_version, ...safe } = user;
+  req.user = safe;
   next();
 }
 

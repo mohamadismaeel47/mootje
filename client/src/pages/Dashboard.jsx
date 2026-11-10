@@ -3,10 +3,11 @@ import {
   ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid, Legend,
 } from 'recharts';
 import {
-  Users, UserPlus, PhoneOutgoing, UserCheck, Trophy, Briefcase, CalendarClock, Hourglass, AlertTriangle, MessageCircle,
+  Users, UserPlus, PhoneOutgoing, UserCheck, Trophy, Briefcase, CalendarClock, Hourglass, AlertTriangle, MessageCircle, ShieldCheck,
 } from 'lucide-react';
 import { api, fmtDate, fmtPhone, STATUS_LABELS, STATUSES } from '../api.js';
 import { useAsync, Spinner, ErrorBox, StatusBadge, Empty, initials } from '../components/ui.jsx';
+import { useAuth } from '../App.jsx';
 
 // Validated categorical slots 1 and 2 (blue, orange).
 const SERIES = { registrations: '#2a78d6', placements: '#eb6834' };
@@ -43,6 +44,7 @@ function ChartTooltip({ active, payload, label }) {
 
 export default function Dashboard() {
   const { data, error, loading } = useAsync(() => api.get('/dashboard'), [], { interval: 30000 });
+  const { user } = useAuth();
   if (loading && !data) return <Spinner />;
   if (error) return <ErrorBox error={error} />;
   const s = data.stats;
@@ -63,6 +65,13 @@ export default function Dashboard() {
           <Link to="/inbox" className="btn"><MessageCircle size={16} /> Inbox{s.unread_messages > 0 ? ` (${s.unread_messages})` : ''}</Link>
         </div>
       </div>
+
+      {!user.totp_enabled && (
+        <Link to="/settings/account" className="alert info" style={{ marginBottom: 16, textDecoration: 'none' }}>
+          <ShieldCheck size={17} />
+          <div><b>Beveilig je account extra</b> — zet tweestapsverificatie aan. Dan heb je bij het inloggen ook een code van je telefoon nodig.</div>
+        </Link>
+      )}
 
       {s.needs_attention > 0 && (
         <Link to="/inbox?filter=attention" className="alert warn" style={{ marginBottom: 16, textDecoration: 'none' }}>

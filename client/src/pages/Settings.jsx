@@ -260,13 +260,18 @@ function UsersTab() {
       </div>
       <ErrorBox error={error} />
       <div className="table-wrap"><table className="table">
-        <thead><tr><th>Naam</th><th>Rol</th><th>Laatst ingelogd</th><th>Actief</th></tr></thead>
+        <thead><tr><th>Naam</th><th>Rol</th><th>2FA</th><th>Laatst ingelogd</th><th>Actief</th><th /></tr></thead>
         <tbody>{data?.map((u) => (
           <tr key={u.id}>
             <td><b>{u.name}</b><div className="sub">{u.email}</div></td>
             <td><select value={u.role} disabled={u.id === user.id} onChange={(e) => update(u.id, { role: e.target.value })} style={{ width: 140 }}><option value="admin">Beheerder</option><option value="recruiter">Recruiter</option><option value="viewer">Alleen lezen</option></select></td>
+            <td>{u.totp_enabled ? <span className="badge green">Aan</span> : <span className="badge amber">Uit</span>}</td>
             <td className="sub">{fmtDateTime(u.last_login_at)}</td>
             <td><label className="checkbox"><input type="checkbox" checked={u.active} disabled={u.id === user.id} onChange={(e) => update(u.id, { active: e.target.checked })} /> {u.active ? 'Actief' : 'Uitgeschakeld'}</label></td>
+            <td style={{ textAlign: 'right', whiteSpace: 'nowrap' }}>
+              {u.locked_until && new Date(u.locked_until) > new Date() && <button type="button" className="btn sm" onClick={() => update(u.id, { unlock: true })}>Deblokkeren</button>}
+              {u.totp_enabled && u.id !== user.id && <button type="button" className="btn sm" onClick={() => update(u.id, { reset_2fa: true })} title="Als de gebruiker zijn telefoon kwijt is">2FA resetten</button>}
+            </td>
           </tr>
         ))}</tbody>
       </table></div>
@@ -322,23 +327,87 @@ function PrivacyTab({ s, reload }) {
 }
 
 function AccountTab() {
-  const { user } = useAuth();
+  const { user, setUser, logout } = useAuth();
   const [f, setF] = useState({ currentPassword: '', newPassword: '' });
   const toast = useToast();
   const [error, setError] = useState(null);
   const save = async () => {
     setError(null);
-    try { await api.post('/auth/change-password', f); toast('Wachtwoord gewijzigd', 'success'); setF({ currentPassword: '', newPassword: '' }); } catch (err) { setError(err); }
+    try { await api.post('/auth/change-password', f); toast('Wachtwoord gewijzigd. Je bent op andere apparaten uitgelogd.', 'success'); setF({ currentPassword: '', newPassword: '' }); } catch (err) { setError(err); }
+  };
+  const logoutEverywhere = async () => {
+    await api.post('/auth/logout-everywhere');
+    toast('Je bent overal uitgelogd', 'success');
+    logout();
   };
   return (
-    <div className="card" style={{ maxWidth: 520 }}>
-      <div className="card-head"><h3>Mijn account</h3></div>
+    <div className="grid grid-2" style={{ alignItems: 'start' }}>
+      <div className="card">
+        <div className="card-head"><h3>Mijn account</h3></div>
+        <div className="card-body stack">
+          <dl className="details"><dt>Naam</dt><dd>{user.name}</dd><dt>E-mail</dt><dd>{user.email}</dd><dt>Rol</dt><dd>{{ admin: 'Beheerder', recruiter: 'Recruiter', viewer: 'Alleen lezen' }[user.role]}</dd></dl>
+          <ErrorBox error={error} />
+          <Field label="Huidig wachtwoord"><input type="password" value={f.currentPassword} onChange={(e) => setF({ ...f, currentPassword: e.target.value })} autoComplete="current-password" /></Field>
+          <Field label="Nieuw wachtwoord" hint="Minstens 10 tekens met letters en cijfers. Gebruik een uniek wachtwoord."><input type="password" value={f.newPassword} onChange={(e) => setF({ ...f, newPassword: e.target.value })} autoComplete="new-password" /></Field>
+          <div className="row wrap">
+            <button type="button" className="btn primary" onClick={save}>Wachtwoord wijzigen</button>
+            <button type="button" className="btn" onClick={logoutEverywhere}>Overal uitloggen</button>
+          </div>
+          <p className="small muted">“Overal uitloggen” beëindigt je sessies op alle apparaten, ook deze. Handig als je ergens bent vergeten uit te loggen.</p>
+        </div>
+      </div>
+      <TwoFactorCard user={user} onChange={(enabled) => setUser({ ...user, totp_enabled: enabled })} />
+    </div>
+  );
+}
+
+function TwoFactorCard({ user, onChange }) {
+  const [setup, setSetup] = useState(null);
+  const [code, setCode] = useState('');
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState(null);
+  const toast = useToast();
+  const start = async () => { setError(null); try { setSetup(await api.post('/auth/2fa/setup')); } catch (e) { setError(e); } };
+  const enable = async () => {
+    setError(null);
+    try { await api.post('/auth/2fa/enable', { code }); toast('Tweestapsverificatie staat aan', 'success'); setSetup(null); setCode(''); onChange(true); } catch (e) { setError(e); }
+  };
+  const disable = async () => {
+    setError(null);
+    try { await api.post('/auth/2fa/disable', { password, code }); toast('Tweestapsverificatie staat uit', 'success'); setCode(''); setPassword(''); onChange(false); } catch (e) { setError(e); }
+  };
+  return (
+    <div className="card">
+      <div className="card-head"><h3>Tweestapsverificatie (2FA)</h3>{user.totp_enabled ? <span className="badge green">Aan</span> : <span className="badge amber">Uit</span>}</div>
       <div className="card-body stack">
-        <dl className="details"><dt>Naam</dt><dd>{user.name}</dd><dt>E-mail</dt><dd>{user.email}</dd><dt>Rol</dt><dd>{{ admin: 'Beheerder', recruiter: 'Recruiter', viewer: 'Alleen lezen' }[user.role]}</dd></dl>
         <ErrorBox error={error} />
-        <Field label="Huidig wachtwoord"><input type="password" value={f.currentPassword} onChange={(e) => setF({ ...f, currentPassword: e.target.value })} autoComplete="current-password" /></Field>
-        <Field label="Nieuw wachtwoord" hint="Minstens 10 tekens met letters en cijfers."><input type="password" value={f.newPassword} onChange={(e) => setF({ ...f, newPassword: e.target.value })} autoComplete="new-password" /></Field>
-        <button type="button" className="btn primary" style={{ alignSelf: 'flex-start' }} onClick={save}>Wachtwoord wijzigen</button>
+        {user.totp_enabled ? (
+          <>
+            <Alert type="success">Je account is extra beveiligd. Bij het inloggen vraagt de CRM om een code uit je authenticator-app.</Alert>
+            <p className="small muted">Uitzetten? Vul je wachtwoord en een code uit de app in.</p>
+            <Field label="Wachtwoord"><input type="password" value={password} onChange={(e) => setPassword(e.target.value)} autoComplete="current-password" /></Field>
+            <Field label="Code uit de app"><input type="text" inputMode="numeric" maxLength={6} value={code} onChange={(e) => setCode(e.target.value)} /></Field>
+            <button type="button" className="btn danger" style={{ alignSelf: 'flex-start' }} onClick={disable}>Tweestapsverificatie uitzetten</button>
+          </>
+        ) : !setup ? (
+          <>
+            <p>Met tweestapsverificatie heb je bij het inloggen je wachtwoord <b>én</b> een code van je telefoon nodig. Zelfs als iemand je wachtwoord weet, kan hij niet inloggen.</p>
+            <p className="small muted">Je hebt een gratis app nodig, zoals <b>Google Authenticator</b> of <b>Microsoft Authenticator</b>.</p>
+            <button type="button" className="btn primary" style={{ alignSelf: 'flex-start' }} onClick={start}>Tweestapsverificatie instellen</button>
+          </>
+        ) : (
+          <>
+            <p><b>Stap 1.</b> Open je authenticator-app, kies <b>Account toevoegen</b> en scan deze QR-code.</p>
+            <img src={setup.qr} alt="QR-code voor de authenticator-app" width="200" height="200" style={{ alignSelf: 'center', border: '1px solid var(--border)', borderRadius: 8 }} />
+            <p className="small muted">Kun je niet scannen? Typ deze sleutel in de app: <code style={{ wordBreak: 'break-all' }}>{setup.secret}</code></p>
+            <p><b>Stap 2.</b> Typ de code van 6 cijfers die de app laat zien.</p>
+            <Field label="Code uit de app"><input type="text" inputMode="numeric" autoComplete="one-time-code" maxLength={6} value={code} onChange={(e) => setCode(e.target.value)} autoFocus /></Field>
+            <div className="row">
+              <button type="button" className="btn primary" onClick={enable} disabled={code.length < 6}>Aanzetten</button>
+              <button type="button" className="btn" onClick={() => setSetup(null)}>Annuleren</button>
+            </div>
+          </>
+        )}
       </div>
     </div>
   );
