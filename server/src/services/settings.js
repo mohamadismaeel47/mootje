@@ -12,7 +12,7 @@ export const DEFINITIONS = {
   'whatsapp.graph_version':       { env: () => config.whatsappEnv.graphVersion, default: 'v23.0', label: 'Graph API-versie' },
 
   'bot.enabled':                  { default: 'true', label: 'Automatisch antwoorden' },
-  'bot.question_mode':            { default: 'all', label: 'Hoe de vragen gesteld worden' },
+  'bot.question_mode':            { default: 'one', label: 'Hoe de vragen gesteld worden' },
   'bot.recruiter_name':           { default: 'Mohamad', label: 'Naam van de recruiter (in het eerste bericht)' },
   'bot.ask_consent':              { default: 'true', label: 'Om privacytoestemming vragen' },
   'bot.offer_cv':                 { default: 'true', label: 'Aan het einde om een cv vragen' },

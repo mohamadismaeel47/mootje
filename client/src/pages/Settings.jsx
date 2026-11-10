@@ -195,7 +195,7 @@ function BotTab({ s, reload }) {
         <div className="card-body">
           <SettingsForm s={s} reload={reload}
             keys={['bot.enabled', 'bot.question_mode', 'bot.recruiter_name', 'bot.ask_consent', 'bot.offer_cv', 'general.default_country_code', 'bot.intro_template_name', 'bot.intro_template_language', 'bot.followup_template_name', 'bot.followup_template_language']}
-            options={{ 'bot.enabled': [['true', 'Aan – automatisch antwoorden'], ['false', 'Uit – alle gesprekken handmatig']], 'bot.question_mode': [['all', 'Alle vragen in één bericht'], ['one', 'Eén vraag tegelijk']], 'bot.ask_consent': [['true', 'Ja (aanbevolen)'], ['false', 'Nee']], 'bot.offer_cv': [['true', 'Ja'], ['false', 'Nee']] }}
+            options={{ 'bot.enabled': [['true', 'Aan – automatisch antwoorden'], ['false', 'Uit – alle gesprekken handmatig']], 'bot.question_mode': [['one', 'Eén vraag tegelijk (aanbevolen)'], ['all', 'Alle vragen in één bericht']], 'bot.ask_consent': [['true', 'Ja (aanbevolen)'], ['false', 'Nee']], 'bot.offer_cv': [['true', 'Ja'], ['false', 'Nee']] }}
             hints={{
               'bot.recruiter_name': 'Wordt gebruikt in “Hi! My name is …”',
               'general.default_country_code': 'Voor nummers zoals 06…, bijv. 31 voor Nederland',
