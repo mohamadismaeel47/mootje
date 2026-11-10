@@ -27,6 +27,24 @@ export default function App() {
     api.get('/auth/me').then((r) => setUser(r.user)).catch(() => setUser(null));
   }, []);
 
+  // Log out automatically when the session ends (12 hours after logging in), even when the page is idle.
+  useEffect(() => {
+    if (!user) return undefined;
+    let timer;
+    let cancelled = false;
+    const check = () => api.get('/auth/me').then((r) => {
+      if (cancelled || !r.expiresAt) return;
+      const ms = new Date(r.expiresAt).getTime() - Date.now();
+      clearTimeout(timer);
+      timer = setTimeout(() => setUser(null), Math.max(0, Math.min(ms, 2 ** 31 - 1)));
+    }).catch(() => {});
+    check();
+    // Computers can sleep: check again when the tab becomes visible.
+    const onVisible = () => { if (document.visibilityState === 'visible') check(); };
+    document.addEventListener('visibilitychange', onVisible);
+    return () => { cancelled = true; clearTimeout(timer); document.removeEventListener('visibilitychange', onVisible); };
+  }, [user?.id]);
+
   if (user === undefined) return <Spinner />;
 
   const can = (role) => {

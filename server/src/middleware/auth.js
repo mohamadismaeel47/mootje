@@ -36,6 +36,7 @@ export async function requireAuth(req, _res, next) {
   if ((payload.tv ?? 0) !== user.token_version) return next(new HttpError(401, 'Je bent uitgelogd. Log opnieuw in.'));
   const { token_version, ...safe } = user;
   req.user = safe;
+  req.sessionExpiresAt = payload.exp ? new Date(payload.exp * 1000).toISOString() : null;
   next();
 }
 

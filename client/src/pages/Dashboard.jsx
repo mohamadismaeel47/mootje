@@ -4,6 +4,7 @@ import {
 } from 'recharts';
 import {
   Users, UserPlus, PhoneOutgoing, UserCheck, Trophy, Briefcase, CalendarClock, Hourglass, AlertTriangle, MessageCircle, ShieldCheck,
+  CheckCheck, MessageSquareOff, Mail,
 } from 'lucide-react';
 import { api, fmtDate, fmtPhone, STATUS_LABELS, STATUSES } from '../api.js';
 import { useAsync, Spinner, ErrorBox, StatusBadge, Empty, initials } from '../components/ui.jsx';
@@ -12,7 +13,13 @@ import { useAuth } from '../App.jsx';
 // Validated categorical slots 1 and 2 (blue, orange).
 const SERIES = { registrations: '#2a78d6', placements: '#eb6834' };
 
+function daysAgo(d) {
+  const days = Math.floor((Date.now() - new Date(d).getTime()) / 86400000);
+  return days <= 0 ? 'vandaag' : days === 1 ? '1 dag geleden' : `${days} dagen geleden`;
+}
+
 function Stat({ icon: Icon, label, value, color, to, sub }) {
+  const isAnchor = to && to.startsWith('#');
   const inner = (
     <>
       <div className={`stat-icon ${color || ''}`}><Icon size={20} /></div>
@@ -23,6 +30,7 @@ function Stat({ icon: Icon, label, value, color, to, sub }) {
       </div>
     </>
   );
+  if (isAnchor) return <a href={to} className="card stat" onClick={(e) => { e.preventDefault(); document.querySelector(to)?.scrollIntoView({ behavior: 'smooth' }); }}>{inner}</a>;
   return to ? <Link to={to} className="card stat">{inner}</Link> : <div className="card stat">{inner}</div>;
 }
 
@@ -89,6 +97,39 @@ export default function Dashboard() {
         <Stat icon={Briefcase} label="Actieve vacatures" value={s.active_vacancies} to="/vacancies" />
         <Stat icon={CalendarClock} label="Geplande gesprekken" value={s.interviews} color="purple" to="/submissions?status=interview" />
         <Stat icon={Hourglass} label="Wachten op antwoord" value={s.waiting_for_reply} color="amber" to="/inbox" />
+        <Stat icon={CheckCheck} label="Inschrijvingen afgerond" value={s.completed_registrations} sub={`${s.completed_this_week} deze week`} color="green" to="/inbox?filter=completed" />
+        <Stat icon={MessageSquareOff} label="Geen bericht in 2 dagen" value={s.no_contact_2d} color={s.no_contact_2d > 0 ? 'red' : ''} to="#geen-contact" />
+        <Stat icon={Mail} label="Ongelezen berichten" value={s.unread_messages} color="purple" to="/inbox?filter=unread" />
+        <Stat icon={AlertTriangle} label="Aandacht nodig" value={s.needs_attention} color={s.needs_attention > 0 ? 'amber' : ''} to="/inbox?filter=attention" />
+      </div>
+
+      <div className="card mt" id="geen-contact">
+        <div className="card-head">
+          <div><h3>Geen bericht gestuurd in 2 dagen</h3><div className="small muted">Kandidaten naar wie jij of de assistent meer dan 2 dagen geen WhatsApp heeft gestuurd. Geplaatste, afgewezen en niet-geïnteresseerde kandidaten staan hier niet bij.</div></div>
+        </div>
+        {data.noContact.length === 0 ? <Empty icon={CheckCheck} title="Iedereen is bijgewerkt">Je hebt alle kandidaten de afgelopen 2 dagen een bericht gestuurd.</Empty> : (
+          <div className="table-wrap">
+            <table className="table">
+              <thead><tr><th>Kandidaat</th><th>Status</th><th>Laatste bericht van jou</th><th>Laatste bericht van kandidaat</th><th /></tr></thead>
+              <tbody>
+                {data.noContact.map((c) => (
+                  <tr key={c.candidate_id}>
+                    <td><Link to={`/candidates/${c.candidate_id}`} className="name">{c.full_name || c.profile_name || 'Naam nog onbekend'}</Link><div className="sub">{fmtPhone(c.phone)}</div></td>
+                    <td><StatusBadge status={c.status} /></td>
+                    <td className="sub">{c.last_outbound_at ? `${daysAgo(c.last_outbound_at)} (${fmtDate(c.last_outbound_at)})` : 'Nog nooit'}</td>
+                    <td className="sub">{c.last_inbound_at ? `${daysAgo(c.last_inbound_at)} (${fmtDate(c.last_inbound_at)})` : '—'}</td>
+                    <td style={{ textAlign: 'right' }}>
+                      {c.conversation_id
+                        ? <Link to={`/inbox/${c.conversation_id}`} className="btn sm"><MessageCircle size={14} /> Chat openen</Link>
+                        : <Link to={`/candidates/${c.candidate_id}`} className="btn sm"><MessageCircle size={14} /> WhatsApp starten</Link>}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+        {s.no_contact_2d > data.noContact.length && <div className="pagination"><span>En nog {s.no_contact_2d - data.noContact.length} andere kandidaten.</span></div>}
       </div>
 
       <div className="split mt">

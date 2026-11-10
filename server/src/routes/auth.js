@@ -106,7 +106,7 @@ router.post('/logout', (_req, res) => {
 });
 
 router.get('/me', requireAuth, (req, res) => {
-  res.json({ user: req.user });
+  res.json({ user: req.user, expiresAt: req.sessionExpiresAt });
 });
 
 // Ends every session of this user on every device (also this one).

@@ -19,8 +19,27 @@ router.get('/', async (_req, res) => {
            AND last_outbound_at IS NOT NULL
            AND (last_inbound_at IS NULL OR last_outbound_at > last_inbound_at)) AS waiting_for_reply,
       (SELECT COALESCE(sum(unread_count),0) FROM conversations) AS unread_messages,
-      (SELECT count(*) FROM conversations WHERE status = 'needs_attention') AS needs_attention
+      (SELECT count(*) FROM conversations WHERE status = 'needs_attention') AS needs_attention,
+      (SELECT count(*) FROM conversations WHERE status = 'completed' AND NOT simulated) AS completed_registrations,
+      (SELECT count(DISTINCT h.candidate_id) FROM candidate_status_history h
+         WHERE h.to_status = 'information_complete' AND h.changed_at > now() - interval '7 days') AS completed_this_week
   `);
+
+  // Candidates who did not get a WhatsApp message from us (recruiter or assistant) for more than 2 days.
+  // Candidates who never got a message count from their registration date. Finished cases are left out.
+  const noContactWhere = `
+    FROM candidates cand LEFT JOIN conversations c ON c.candidate_id = cand.id
+    WHERE (c.id IS NULL OR NOT c.simulated)
+      AND cand.status NOT IN ('placed','rejected','not_interested')
+      AND (c.status IS NULL OR c.status <> 'closed')
+      AND COALESCE(c.last_outbound_at, cand.created_at) < now() - interval '2 days'`;
+  const noContactCount = (await one(`SELECT count(*) AS n ${noContactWhere}`)).n;
+  const noContact = await many(`
+    SELECT cand.id AS candidate_id, cand.full_name, cand.phone, cand.status, c.id AS conversation_id,
+           c.bot_state->>'profile_name' AS profile_name, c.last_outbound_at, c.last_inbound_at
+    ${noContactWhere}
+    ORDER BY COALESCE(c.last_outbound_at, cand.created_at) ASC LIMIT 15`);
+  stats.no_contact_2d = noContactCount;
 
   // Last 12 weeks: registrations and placements per week.
   const chart = await many(`
@@ -40,7 +59,7 @@ router.get('/', async (_req, res) => {
     'SELECT id, full_name, phone, status, created_at FROM candidates ORDER BY created_at DESC LIMIT 6',
   );
 
-  res.json({ stats, chart, byStatus, recentCandidates });
+  res.json({ stats, chart, byStatus, recentCandidates, noContact });
 });
 
 export default router;

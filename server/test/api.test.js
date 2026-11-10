@@ -191,3 +191,17 @@ test('public privacy, terms and data deletion pages work without login', async (
   assert.match((await a.raw.get('/privacy')).text, /never ask for or store the number itself/);
   assert.match((await a.raw.get('/data-deletion')).text, /DELETE/);
 });
+
+test('dashboard: completed registrations and candidates without a message for 2 days', async () => {
+  const c = (await admin.post('/api/candidates').send({ full_name: 'Stil Persoon', phone: '+31655555555' })).body;
+  await pool.query(`UPDATE candidates SET created_at = now() - interval '5 days' WHERE id = $1`, [c.id]);
+  const recent = (await admin.post('/api/candidates').send({ full_name: 'Nieuw Persoon', phone: '+31655555556' })).body;
+  const d = (await admin.get('/api/dashboard')).body;
+  assert.ok(d.noContact.some((x) => x.candidate_id === c.id), 'old candidate without messages is listed');
+  assert.ok(!d.noContact.some((x) => x.candidate_id === recent.id), 'new candidate is not listed yet');
+  assert.equal(typeof d.stats.completed_registrations, 'number');
+  assert.equal(typeof d.stats.no_contact_2d, 'number');
+  const me = (await admin.get('/api/auth/me')).body;
+  const hours = (new Date(me.expiresAt) - Date.now()) / 3600000;
+  assert.ok(hours > 11.9 && hours <= 12, `session ends after 12 hours (got ${hours})`);
+});
