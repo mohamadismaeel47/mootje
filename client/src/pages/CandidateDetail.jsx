@@ -157,6 +157,17 @@ function Profile({ candidate, onSaved }) {
         </div>
       </div>
       <div className="stack">
+        {candidate.files.some((f) => f.kind === 'voice') && (
+          <div className="card">
+            <div className="card-head"><h3>🎤 Engels – spraakbericht</h3></div>
+            <div className="card-body stack">
+              {candidate.files.filter((f) => f.kind === 'voice').map((f) => (
+                <div key={f.id}><audio controls preload="none" src={`/api/files/${f.id}`} style={{ width: '100%' }} /><div className="small muted">{fmtDateTime(f.created_at)}</div></div>
+              ))}
+              <p className="small muted">Luister en pas daarna het <b>niveau Engels</b> in het profiel aan als dat nodig is.</p>
+            </div>
+          </div>
+        )}
         <div className="card">
           <div className="card-head"><h3>Voortgang inschrijving</h3></div>
           <div className="card-body"><Progress c={candidate} /></div>
@@ -272,7 +283,7 @@ function Files({ candidate, onChange }) {
         {can('recruiter') && (
           <label className={`dropzone ${drag ? 'drag' : ''}`} onDragOver={(e) => { e.preventDefault(); setDrag(true); }} onDragLeave={() => setDrag(false)}
             onDrop={(e) => { e.preventDefault(); setDrag(false); upload(e.dataTransfer.files[0]); }}>
-            <input type="file" hidden accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,.webp" onChange={(e) => upload(e.target.files[0])} />
+            <input type="file" hidden accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,.webp,.ogg,.mp3,.m4a,.aac,.opus" onChange={(e) => upload(e.target.files[0])} />
             <Upload size={22} /><div>{busy ? 'Bezig met uploaden…' : 'Sleep een cv hierheen of klik om te uploaden'}</div>
           </label>
         )}
@@ -281,7 +292,7 @@ function Files({ candidate, onChange }) {
             {candidate.files.map((f) => (
               <div key={f.id} className="file-row">
                 <FileText size={22} className="faint" />
-                <div className="meta"><b>{f.original_name}</b><span className="small muted">{(f.size_bytes / 1024).toFixed(0)} KB · {f.source === 'whatsapp' ? 'Ontvangen via WhatsApp' : 'Geüpload'} · {fmtDateTime(f.created_at)}</span></div>
+                <div className="meta"><b>{f.kind === 'voice' ? '🎤 Spraakbericht' : f.original_name}</b>{f.kind === 'voice' && <audio controls preload="none" src={`/api/files/${f.id}`} style={{ display: 'block', margin: '6px 0', maxWidth: '100%' }} />}<span className="small muted">{(f.size_bytes / 1024).toFixed(0)} KB · {f.source === 'whatsapp' ? 'Ontvangen via WhatsApp' : 'Geüpload'} · {fmtDateTime(f.created_at)}</span></div>
                 <a className="btn sm" href={`/api/files/${f.id}`} target="_blank" rel="noopener noreferrer"><ExternalLink size={14} /> Openen</a>
                 <a className="btn sm" href={`/api/files/${f.id}?download=1`}><Download size={14} /> Downloaden</a>
                 {can('recruiter') && <button type="button" className="btn sm danger icon" aria-label="Bestand verwijderen" onClick={() => setDel(f)}><Trash2 size={14} /></button>}

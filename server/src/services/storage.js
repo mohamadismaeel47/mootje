@@ -14,6 +14,13 @@ export const ALLOWED_TYPES = {
   'image/png': '.png',
   'image/webp': '.webp',
   'text/plain': '.txt',
+  // Voice messages (WhatsApp sends ogg/opus)
+  'audio/ogg': '.ogg',
+  'audio/opus': '.opus',
+  'audio/mpeg': '.mp3',
+  'audio/mp4': '.m4a',
+  'audio/aac': '.aac',
+  'audio/amr': '.amr',
 };
 
 export function isAllowedType(mime) {
@@ -27,13 +34,13 @@ function cleanName(name) {
 // Files are stored outside the web root with a random name; they can only be
 // downloaded through the authenticated /api/files endpoint.
 export function filePath(storedName) {
-  if (!/^[a-f0-9]{32}\.[a-z]{3,4}$/.test(storedName)) throw new Error('Invalid stored file name');
+  if (!/^[a-f0-9]{32}\.[a-z0-9]{3,4}$/.test(storedName)) throw new Error('Invalid stored file name');
   return path.join(config.uploadDir, storedName);
 }
 
 export async function saveFile({ candidateId, buffer, originalName, mimeType, source = 'upload', userId = null, kind = 'cv' }) {
   const mime = String(mimeType || '').split(';')[0].trim();
-  if (!isAllowedType(mime)) throw badRequest('Dit bestandstype is niet toegestaan. Gebruik PDF, Word, JPG of PNG.');
+  if (!isAllowedType(mime)) throw badRequest('Dit bestandstype is niet toegestaan. Gebruik PDF, Word, JPG, PNG of een audiobestand.');
   if (buffer.length > config.maxUploadMb * 1024 * 1024) throw badRequest(`Bestand is groter dan ${config.maxUploadMb} MB`);
   const stored = `${crypto.randomBytes(16).toString('hex')}${ALLOWED_TYPES[mime]}`;
   await fs.mkdir(config.uploadDir, { recursive: true });

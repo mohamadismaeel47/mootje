@@ -15,6 +15,7 @@ export const DEFINITIONS = {
   'bot.question_mode':            { default: 'one', label: 'Hoe de vragen gesteld worden' },
   'bot.recruiter_name':           { default: 'Mohamad', label: 'Naam van de recruiter (in het eerste bericht)' },
   'bot.ask_consent':              { default: 'true', label: 'Om privacytoestemming vragen' },
+  'bot.ask_voice':                { default: 'true', label: 'Om een spraakbericht in het Engels vragen' },
   'bot.offer_cv':                 { default: 'true', label: 'Aan het einde om een cv vragen' },
   'bot.intro_template_name':      { default: '', label: 'Template voor het eerste bericht' },
   'bot.intro_template_language':  { default: 'en', label: 'Taalcode van de template' },

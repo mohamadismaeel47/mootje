@@ -23,6 +23,7 @@ function messageText(msg) {
     case 'interactive': return msg.interactive?.button_reply?.title || msg.interactive?.list_reply?.title || '';
     case 'document': return msg.document?.caption || msg.document?.filename || '';
     case 'image': return msg.image?.caption || '';
+    case 'audio': return '';
     case 'reaction': return msg.reaction?.emoji || '';
     default: return '';
   }
@@ -59,18 +60,22 @@ export async function processIncomingMessage(msg, { profileName, simulated = fal
   return withConversationLock(conv.id, async () => {
     let fileId = null;
     let fileError = null;
-    const media = msg.document || msg.image;
-    if ((msg.type === 'document' || msg.type === 'image') && media?.id && !simulated) {
+    const media = msg.document || msg.image || msg.audio;
+    const isVoice = msg.type === 'audio';
+    if (['document', 'image', 'audio'].includes(msg.type) && media?.id && !simulated) {
       try {
         const m = await downloadMedia(media.id);
         const mime = media.mime_type || m.mimeType;
         if (isAllowedType(mime)) {
           const file = await saveFile({
-            candidateId: cand.id, buffer: m.buffer, mimeType: mime, source: 'whatsapp',
-            originalName: media.filename || `whatsapp-${msg.type}-${Date.now()}${mime === 'application/pdf' ? '.pdf' : mime.startsWith('image/') ? '.jpg' : ''}`,
+            candidateId: cand.id, buffer: m.buffer, mimeType: mime, source: 'whatsapp', kind: isVoice ? 'voice' : 'cv',
+            originalName: media.filename || (isVoice
+              ? `spraakbericht-${new Date().toISOString().slice(0, 16).replace(/[:T]/g, '-')}.ogg`
+              : `whatsapp-${msg.type}-${Date.now()}${mime === 'application/pdf' ? '.pdf' : mime.startsWith('image/') ? '.jpg' : ''}`),
           });
           fileId = file.id;
-          await notify('cv_received', `Bestand ontvangen van ${cand.full_name || `+${cand.phone}`}`, file.original_name, `/candidates/${cand.id}`);
+          await notify(isVoice ? 'voice_received' : 'cv_received',
+            `${isVoice ? 'Spraakbericht' : 'Bestand'} ontvangen van ${cand.full_name || `+${cand.phone}`}`, file.original_name, `/candidates/${cand.id}`);
         } else fileError = `Bestandstype ${mime} is niet toegestaan`;
       } catch (err) {
         fileError = err.message;
@@ -89,7 +94,7 @@ export async function processIncomingMessage(msg, { profileName, simulated = fal
     let result;
     try {
       result = await handleIncoming(conv.id, {
-        type: fileId ? msg.type : (msg.type === 'document' || msg.type === 'image') ? 'text' : msg.type,
+        type: fileId ? msg.type : ['document', 'image', 'audio'].includes(msg.type) ? 'text' : msg.type,
         text: fileId ? '' : (['text', 'button', 'interactive'].includes(msg.type) ? text : ''),
       });
     } catch (err) {

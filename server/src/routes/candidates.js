@@ -144,7 +144,7 @@ router.post('/:id/files', editor, upload.single('file'), async (req, res) => {
   if (!(await one('SELECT id FROM candidates WHERE id = $1', [id]))) throw notFound();
   const f = await saveFile({
     candidateId: id, buffer: req.file.buffer, originalName: req.file.originalname,
-    mimeType: req.file.mimetype, userId: req.user.id, kind: req.body.kind === 'other' ? 'other' : 'cv',
+    mimeType: req.file.mimetype, userId: req.user.id, kind: ['other', 'voice'].includes(req.body.kind) ? req.body.kind : String(req.file.mimetype || '').startsWith('audio/') ? 'voice' : 'cv',
   });
   await audit(req.user.id, 'upload_file', 'candidate', id, f.original_name);
   const { stored_name, ...safe } = f;

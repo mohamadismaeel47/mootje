@@ -14,7 +14,7 @@ before(async () => {
   admin = await loggedInAdmin();
   await admin.put('/api/settings').send({ values: {
     'whatsapp.access_token': 'EAAtesttoken', 'whatsapp.phone_number_id': PHONE_ID, 'whatsapp.business_account_id': '999',
-    'whatsapp.app_secret': SECRET, 'whatsapp.verify_token': VERIFY, 'bot.question_mode': 'one',
+    'whatsapp.app_secret': SECRET, 'whatsapp.verify_token': VERIFY, 'bot.question_mode': 'one', 'bot.ask_voice': 'false',
   } });
 });
 after(async () => { graph?.restore(); await pool.end(); });
@@ -373,4 +373,38 @@ test('check-in "still looking for work?": NO sets not interested, not asked twic
   assert.equal(after.status, 'not_interested');
   const again = (await admin.post('/api/candidates/checkin').send({ confirm: true })).body;
   assert.ok(!again.results.some((x) => x.candidate_id === cand.id), 'not asked again');
+});
+
+test('English check: assistant asks for a voice message, saves and stores it as voice file', async () => {
+  await admin.put('/api/settings').send({ values: { 'bot.ask_voice': 'true' } });
+  graph.restore();
+  graph = mockGraph((url) => {
+    if (url.includes('/voice123')) return { url: 'https://lookaside.fbsbx.com/whatsapp_business/attachments/?mid=voice123', mime_type: 'audio/ogg; codecs=opus', file_size: 10 };
+    if (url.startsWith('https://lookaside')) return { audio: true };
+    return undefined;
+  });
+  const from = '48600900900';
+  // Candidate with all answers known except the desired job
+  await admin.post('/api/candidates').send({
+    phone: `+${from}`, full_name: 'Voice Test', age: 30, nationality: 'Polish', current_city: 'Breda', has_bsn: true, english_level: 'good',
+    driving_licence: true, own_car: false, has_experience: true, forklift: false, ept: false, reach_truck: false, availability: 'now', consent_given: true,
+  });
+  await deliver(payload(from, 'I am looking for a job'));
+  assert.match(lastSent(), /What kind of job are you looking for/);
+  await deliver(payload(from, 'order picker'));
+  assert.match(lastSent(), /voice message in English/);
+  await deliver(payload(from, '', { type: 'audio', text: undefined, audio: { id: 'voice123', mime_type: 'audio/ogg; codecs=opus', voice: true } }));
+  assert.match(lastSent(), /we received your voice message!\n\nThank you! Do you have a CV\?/);
+  const cand = (await pool.query('SELECT id FROM candidates WHERE phone = $1', [from])).rows[0];
+  const files = (await admin.get(`/api/candidates/${cand.id}`)).body.files;
+  assert.equal(files.length, 1);
+  assert.equal(files[0].kind, 'voice');
+  assert.equal(files[0].mime_type, 'audio/ogg');
+  const conv = (await admin.get('/api/conversations?q=600900')).body[0];
+  const msgs = (await admin.get(`/api/conversations/${conv.id}`)).body.messages;
+  assert.ok(msgs.some((m) => m.file_mime === 'audio/ogg'));
+  // SKIP also works
+  await deliver(payload(from, 'no'));
+  assert.match(lastSent(), /registration is complete/);
+  await admin.put('/api/settings').send({ values: { 'bot.ask_voice': 'false' } });
 });

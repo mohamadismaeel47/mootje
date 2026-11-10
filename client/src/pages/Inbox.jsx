@@ -15,7 +15,7 @@ const QUESTION_NL = { full_name: 'naam', age: 'leeftijd', nationality: 'national
 function STEP_LABEL(step) {
   if (!step) return '—';
   if (step.startsWith('q:')) return `Vraag: ${QUESTION_NL[step.slice(2)] || step.slice(2)}`;
-  return { intro: 'Eerste vraag', consent: 'Toestemming', all: 'Alle vragen gestuurd', cv: 'Cv gevraagd', completed: 'Afgerond', not_interested: 'Geen interesse', closed_no_consent: 'Geen toestemming' }[step] || step;
+  return { intro: 'Eerste vraag', consent: 'Toestemming', all: 'Alle vragen gestuurd', voice: 'Spraakbericht gevraagd', cv: 'Cv gevraagd', vacancy_offer: 'Vacature gestuurd', checkin: 'Zoek je nog werk?', completed: 'Afgerond', not_interested: 'Geen interesse', closed_no_consent: 'Geen toestemming' }[step] || step;
 }
 
 function shortTime(d) {
@@ -170,7 +170,9 @@ function Chat({ id, onChange }) {
                 {sep}
                 <div className={`bubble ${m.direction} ${m.sender === 'bot' ? 'bot' : ''} ${m.status === 'failed' ? 'failed' : ''}`}>
                   {m.direction === 'out' && <div className="who-tag">{m.sender === 'bot' ? 'Assistent' : m.user_name || 'Jij'}{m.template_name ? ` · template ${m.template_name}` : ''}</div>}
-                  {m.file_id ? (
+                  {m.file_id && m.file_mime?.startsWith('audio/') ? (
+                    <div><div className="small" style={{ marginBottom: 4 }}>🎤 Spraakbericht</div><audio controls preload="none" src={`/api/files/${m.file_id}`} style={{ maxWidth: 260 }} /></div>
+                  ) : m.file_id ? (
                     <a href={`/api/files/${m.file_id}`} target="_blank" rel="noopener noreferrer" className="row" style={{ gap: 6 }}><FileText size={16} /> {m.file_name || 'Bestand'}</a>
                   ) : m.body}
                   {m.error && <div className="err">{m.error}</div>}

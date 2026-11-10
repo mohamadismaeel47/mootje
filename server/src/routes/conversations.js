@@ -82,7 +82,7 @@ router.get('/:id', async (req, res) => {
   if (!conv) throw notFound('Gesprek niet gevonden');
   const messages = await many(`
     SELECT m.id, m.direction, m.type, m.body, m.template_name, m.status, m.error, m.sender, m.created_at, m.file_id,
-           u.name AS user_name, f.original_name AS file_name
+           u.name AS user_name, f.original_name AS file_name, f.mime_type AS file_mime
     FROM messages m LEFT JOIN users u ON u.id = m.user_id LEFT JOIN candidate_files f ON f.id = m.file_id
     WHERE m.conversation_id = $1 ORDER BY m.created_at, m.id LIMIT 1000`, [id]);
   if (conv.unread_count > 0 && req.query.peek !== '1') await query('UPDATE conversations SET unread_count = 0 WHERE id = $1', [id]);

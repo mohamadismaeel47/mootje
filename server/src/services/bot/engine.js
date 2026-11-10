@@ -130,7 +130,14 @@ async function askNext(ctx, { intro } = {}) {
     await send(intro ? `${intro}\n\n${promptFor(lang, next.question, next.index)}` : promptFor(lang, next.question, next.index));
     return;
   }
-  const hasFile = await one('SELECT id FROM candidate_files WHERE candidate_id = $1 LIMIT 1', [cand.id]);
+  // English check: ask for a short voice message (once).
+  const hasVoice = await one(`SELECT id FROM candidate_files WHERE candidate_id = $1 AND kind = 'voice' LIMIT 1`, [cand.id]);
+  if (!hasVoice && (await getBool('bot.ask_voice')) && !ctx.state.voice_asked) {
+    await saveState(conv.id, { step: 'voice', state: { ...ctx.state, voice_asked: true, attempts: 0 }, status: 'in_progress' });
+    await send(intro ? `${intro}\n\n${t(lang, 'voice_request')}` : t(lang, 'voice_request'));
+    return;
+  }
+  const hasFile = await one(`SELECT id FROM candidate_files WHERE candidate_id = $1 AND kind = 'cv' LIMIT 1`, [cand.id]);
   if (!hasFile && (await getBool('bot.offer_cv')) && !ctx.state.cv_offered) {
     await saveState(conv.id, { step: 'cv', state: { ...ctx.state, cv_offered: true, attempts: 0 }, status: 'in_progress' });
     await send(intro ? `${intro}\n\n${t(lang, 'cv_offer')}` : t(lang, 'cv_offer'));
@@ -205,6 +212,18 @@ export async function handleIncoming(conversationId, message) {
     await ctx.send(t(lang, 'language_set'));
     if (conv.bot_step && conv.bot_step.startsWith('q:')) return askNextAndReturn(ctx);
     return { handled: true, action: 'language' };
+  }
+
+  // Voice messages are already saved by the webhook handler.
+  if (message.type === 'audio') {
+    if (conv.bot_step === 'voice') {
+      ctx.state = { ...state, voice_asked: true };
+      await askNext(ctx, { intro: t(lang, 'voice_received') });
+      return { handled: true, action: 'voice_saved' };
+    }
+    await ctx.send(t(lang, 'voice_received'));
+    if (conv.bot_step && conv.bot_step.startsWith('q:')) return askNextAndReturn(ctx);
+    return { handled: true, action: 'voice' };
   }
 
   // Files (CV) are already saved by the webhook handler.
@@ -306,6 +325,18 @@ export async function handleIncoming(conversationId, message) {
       : `${t(lang, 'not_understood')} ${questionExplain(lang, question)}\n\n${questionText(lang, question)}`;
     await ctx.send(clarify);
     return { handled: true, action: 'unclear' };
+  }
+
+  if (step === 'voice') {
+    const skip = parseYesNo(text) === false || /\b(skip|overslaan|later|cannot|can ?t|kan niet)\b/i.test(text);
+    if (!skip && !(state.attempts >= 1)) {
+      await saveState(conv.id, { state: { ...state, attempts: (state.attempts || 0) + 1 } });
+      await ctx.send(t(lang, 'voice_waiting'));
+      return { handled: true, action: 'voice_waiting' };
+    }
+    ctx.state = { ...state, voice_asked: true, attempts: 0 };
+    await askNext(ctx);
+    return { handled: true, action: 'voice_skipped' };
   }
 
   if (step === 'cv') {
@@ -411,7 +442,8 @@ export async function sendFollowUp(conversationId, { userId } = {}) {
     else if (conv.bot_step === 'all') {
       const keys = conv.bot_state?.list_keys || [];
       pending = `\n\n${listMessage(lang, keys.map((k) => QUESTIONS.find((q) => q.key === k)).filter(Boolean))}`;
-    } else if (conv.bot_step === 'cv') pending = `\n\n${t(lang, 'cv_offer')}`;
+    } else if (conv.bot_step === 'voice') pending = `\n\n${t(lang, 'voice_request')}`;
+    else if (conv.bot_step === 'cv') pending = `\n\n${t(lang, 'cv_offer')}`;
     return sendMessage(conv, `${t(lang, 'followup', { name: firstName(cand) })}${pending}`, { sender: 'user', userId });
   }
   const name = await getSetting('bot.followup_template_name');
