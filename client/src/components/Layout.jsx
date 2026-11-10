@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link, NavLink, useLocation } from 'react-router-dom';
 import {
-  LayoutDashboard, Users, MessageCircle, Briefcase, Building2, Send, Settings, LogOut, Menu, Bell, UserRoundSearch,
+  LayoutDashboard, Users, MessageCircle, Briefcase, Building2, Send, Settings, LogOut, Menu, Bell,
 } from 'lucide-react';
 import { api, fmtDateTime } from '../api.js';
 import { useAuth } from '../App.jsx';
@@ -25,7 +25,7 @@ export default function Layout({ children }) {
     <div className="app">
       <aside className={`sidebar ${open ? 'open' : ''}`}>
         <div className="brand">
-          <div className="brand-logo"><UserRoundSearch size={18} /></div>
+          <img className="brand-logo" src="/logo.svg" alt="" />
           <div>Recruitment CRM<small>Candidates &amp; WhatsApp</small></div>
         </div>
         <nav className="nav">

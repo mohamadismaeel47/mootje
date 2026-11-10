@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { CheckCircle2, UserRoundSearch, ShieldCheck } from 'lucide-react';
+import { CheckCircle2, ShieldCheck } from 'lucide-react';
 import { api } from '../api.js';
 import { Alert, Field, Spinner } from '../components/ui.jsx';
 
@@ -35,7 +35,7 @@ export default function Login({ onLogin, redirect }) {
     <div className="auth-page">
       <div className="auth-side">
         <div className="brand" style={{ padding: 0 }}>
-          <div className="brand-logo"><UserRoundSearch size={18} /></div>
+          <img className="brand-logo" src="/logo.svg" alt="" />
           <div>Recruitment CRM</div>
         </div>
         <div>
