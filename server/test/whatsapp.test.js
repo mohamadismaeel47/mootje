@@ -14,7 +14,7 @@ before(async () => {
   admin = await loggedInAdmin();
   await admin.put('/api/settings').send({ values: {
     'whatsapp.access_token': 'EAAtesttoken', 'whatsapp.phone_number_id': PHONE_ID, 'whatsapp.business_account_id': '999',
-    'whatsapp.app_secret': SECRET, 'whatsapp.verify_token': VERIFY,
+    'whatsapp.app_secret': SECRET, 'whatsapp.verify_token': VERIFY, 'bot.question_mode': 'one',
   } });
 });
 after(async () => { graph?.restore(); await pool.end(); });
@@ -262,4 +262,62 @@ test('simulator uses the same bot without calling Meta', async () => {
   assert.equal(conv.simulated, true);
   assert.ok(conv.messages.every((m) => m.direction === 'in' || m.status === 'simulated'));
   assert.equal((await admin.delete(`/api/conversations/${r.body.conversationId}`)).status, 200);
+});
+
+test('all-at-once mode: one numbered list, missing answers asked one by one', async () => {
+  await admin.put('/api/settings').send({ values: { 'bot.question_mode': 'all' } });
+  const from = '48600888777';
+  await deliver(payload(from, 'Hello'));
+  await deliver(payload(from, 'yes'));
+  await deliver(payload(from, 'yes'));
+  const list = lastSent();
+  assert.match(list, /in ONE message/);
+  assert.match(list, /^1\. What is your full name\?$/m);
+  assert.match(list, /^12\. What kind of job are you looking for\?$/m);
+
+  // One reply with all answers; the age answer is unclear.
+  await deliver(payload(from, [
+    '1. Marta Zielinska', '2. old', '3. Polish', '4. Tilburg, Netherlands', '5. yes', '6. good', '7. yes', '8. no',
+    '9. yes, 1 year packing in a warehouse', '10. EPT', '11. next week', '12. order picker',
+  ].join('\n')));
+  assert.match(lastSent(), /I saved your answers! I still need a few more answers:\n\nQuestion 2 of 12: How old are you\?/);
+  let c = (await pool.query('SELECT * FROM candidates WHERE phone = $1', [from])).rows[0];
+  assert.equal(c.full_name, 'Marta Zielinska');
+  assert.equal(c.current_city, 'Tilburg');
+  assert.equal(c.ept, true);
+  assert.equal(c.forklift, false);
+  assert.equal(c.desired_job, 'order picker');
+  assert.equal(c.age, null);
+
+  await deliver(payload(from, '31'));
+  assert.match(lastSent(), /Do you have a CV\?/);
+  c = (await pool.query('SELECT age FROM candidates WHERE phone = $1', [from])).rows[0];
+  assert.equal(c.age, 31);
+});
+
+test('all-at-once mode: answers on one line and in separate messages', async () => {
+  const from = '48600888666';
+  await deliver(payload(from, 'Hi, I am looking for a job'));
+  await deliver(payload(from, 'yes'));
+  await deliver(payload(from, '1. Ion Popescu 2. 40 3) Romanian'));
+  assert.match(lastSent(), /Question 4 of 12/);
+  // A numbered answer to another open question while a single question is open
+  await deliver(payload(from, '6. fluent'));
+  const c = (await pool.query('SELECT * FROM candidates WHERE phone = $1', [from])).rows[0];
+  assert.equal(c.full_name, 'Ion Popescu');
+  assert.equal(c.age, 40);
+  assert.equal(c.nationality, 'Romanian');
+  assert.equal(c.english_level, 'fluent');
+  assert.match(lastSent(), /Question 4 of 12/);
+});
+
+test('all-at-once mode: unreadable reply twice falls back to one by one', async () => {
+  const from = '48600888555';
+  await deliver(payload(from, 'job'));
+  await deliver(payload(from, 'yes'));
+  await deliver(payload(from, 'ok I will answer later'));
+  assert.match(lastSent(), /could not read your answers/);
+  await deliver(payload(from, 'hmm'));
+  assert.match(lastSent(), /one question at a time\.\n\nQuestion 1 of 12: What is your full name\?/);
+  await admin.put('/api/settings').send({ values: { 'bot.question_mode': 'one' } });
 });

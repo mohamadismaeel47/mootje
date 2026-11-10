@@ -25,6 +25,12 @@ export const TEXTS = {
     start_ack: 'Welcome back! Let us continue.',
     language_set: 'Okay, we will continue in English.',
     followup: 'Hi{name}, just checking in. Could you please answer the last question?',
+    all_intro: 'Please answer the questions below in ONE message. Put the number of the question before each answer.',
+    all_example: 'Example:\n1. your answer\n2. your answer\n3. your answer',
+    all_explain: 'Answer all questions in one message and start each answer with the number of the question. If you do not understand a question, just answer the others. I will ask that one again later.',
+    all_unclear: 'Sorry, I could not read your answers. Please write the number of the question before each answer, like in the example.',
+    all_fallback: 'No problem, we will do it one question at a time.',
+    all_more: 'Thank you, I saved your answers! I still need a few more answers:',
   },
   nl: {
     intro: 'Hoi! Mijn naam is {recruiter}. Klopt het dat je op zoek bent naar werk?',
@@ -47,6 +53,12 @@ export const TEXTS = {
     start_ack: 'Welkom terug! We gaan verder.',
     language_set: 'Oké, we gaan verder in het Nederlands.',
     followup: 'Hoi{name}, ik wilde even checken. Wil je de laatste vraag nog beantwoorden?',
+    all_intro: 'Beantwoord de vragen hieronder in ÉÉN bericht. Zet het nummer van de vraag voor elk antwoord.',
+    all_example: 'Voorbeeld:\n1. jouw antwoord\n2. jouw antwoord\n3. jouw antwoord',
+    all_explain: 'Beantwoord alle vragen in één bericht en begin elk antwoord met het nummer van de vraag. Begrijp je een vraag niet? Beantwoord dan gewoon de andere. Die vraag stel ik later nog een keer.',
+    all_unclear: 'Sorry, ik kon je antwoorden niet lezen. Zet het nummer van de vraag voor elk antwoord, zoals in het voorbeeld.',
+    all_fallback: 'Geen probleem, we doen het vraag voor vraag.',
+    all_more: 'Bedankt, ik heb je antwoorden opgeslagen! Ik heb nog een paar antwoorden nodig:',
   },
 };
 

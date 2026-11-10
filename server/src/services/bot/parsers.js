@@ -296,3 +296,24 @@ export function isAnswered(key, c) {
     default: return c[key] !== null && c[key] !== undefined && c[key] !== '';
   }
 }
+
+// Splits a reply to the numbered question list into separate answers.
+// Works with one answer per line ("1. Anna\n2. 28") and on one line ("1. Anna 2. 28 3) Polish").
+// Returns [{ n, answer }] with 1 <= n <= max.
+export function splitNumbered(text, max) {
+  const s = String(text || '');
+  const marker = /(?:^|[\s,;])(\d{1,2})\s?[.):](?=\s|$)/g;
+  const found = [];
+  for (const m of s.matchAll(marker)) {
+    const n = Number(m[1]);
+    if (n < 1 || n > max) continue;
+    found.push({ n, start: m.index, end: m.index + m[0].length });
+  }
+  const out = [];
+  found.forEach((f, i) => {
+    const next = found[i + 1];
+    const answer = s.slice(f.end, next ? next.start : s.length).replace(/^[\s,;]+|[\s,;]+$/g, '');
+    if (answer && !out.some((o) => o.n === f.n)) out.push({ n: f.n, answer });
+  });
+  return out;
+}

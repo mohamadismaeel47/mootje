@@ -12,6 +12,7 @@ export const DEFINITIONS = {
   'whatsapp.graph_version':       { env: () => config.whatsappEnv.graphVersion, default: 'v23.0', label: 'Graph API version' },
 
   'bot.enabled':                  { default: 'true', label: 'Automatic replies enabled' },
+  'bot.question_mode':            { default: 'all', label: 'How to ask the questions' },
   'bot.recruiter_name':           { default: 'Mohamad', label: 'Recruiter name used by the bot' },
   'bot.ask_consent':              { default: 'true', label: 'Ask for privacy consent' },
   'bot.offer_cv':                 { default: 'true', label: 'Ask for a CV at the end' },

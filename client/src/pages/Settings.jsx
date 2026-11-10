@@ -194,8 +194,8 @@ function BotTab({ s, reload }) {
         <div className="card-head"><h3>WhatsApp assistant</h3></div>
         <div className="card-body">
           <SettingsForm s={s} reload={reload}
-            keys={['bot.enabled', 'bot.recruiter_name', 'bot.ask_consent', 'bot.offer_cv', 'general.default_country_code', 'bot.intro_template_name', 'bot.intro_template_language', 'bot.followup_template_name', 'bot.followup_template_language']}
-            options={{ 'bot.enabled': [['true', 'On – reply automatically'], ['false', 'Off – all conversations manual']], 'bot.ask_consent': [['true', 'Yes (recommended)'], ['false', 'No']], 'bot.offer_cv': [['true', 'Yes'], ['false', 'No']] }}
+            keys={['bot.enabled', 'bot.question_mode', 'bot.recruiter_name', 'bot.ask_consent', 'bot.offer_cv', 'general.default_country_code', 'bot.intro_template_name', 'bot.intro_template_language', 'bot.followup_template_name', 'bot.followup_template_language']}
+            options={{ 'bot.enabled': [['true', 'On – reply automatically'], ['false', 'Off – all conversations manual']], 'bot.question_mode': [['all', 'All questions in one message'], ['one', 'One question at a time']], 'bot.ask_consent': [['true', 'Yes (recommended)'], ['false', 'No']], 'bot.offer_cv': [['true', 'Yes'], ['false', 'No']] }}
             hints={{
               'bot.recruiter_name': 'Used in “Hi! My name is …”',
               'general.default_country_code': 'For numbers like 06…, e.g. 31 for the Netherlands',
@@ -210,7 +210,7 @@ function BotTab({ s, reload }) {
         <div className="card-body stack small">
           <p>1. A candidate writes to your WhatsApp number (or you start the chat with a template).</p>
           <p>2. The assistant asks: <i>“Is it correct that you are looking for a job?”</i></p>
-          <p>3. After YES (and privacy consent) it asks 12 questions, <b>one at a time</b>. Every answer is saved immediately in the profile.</p>
+          <p>3. After YES (and privacy consent) it sends the 12 questions — <b>all in one numbered message</b> or <b>one at a time</b> (your choice). Every answer is saved immediately. Missing or unclear answers are asked again one by one.</p>
           <p>4. Questions that are already answered are skipped. If the candidate does not understand, it explains the question. Unclear answers are asked again (3 tries, then you get a notification).</p>
           <p>5. English and Dutch are supported; the language is detected automatically.</p>
           <p>6. You get a notification when the registration is complete. Switch a chat to <b>Manual</b> at any time to take over.</p>

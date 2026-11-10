@@ -9,7 +9,7 @@ import { sendMessage, sendTemplateMessage } from '../messenger.js';
 import { windowOpen } from '../whatsapp.js';
 import { QUESTIONS, SUPPORTED_LANGUAGES, t, questionText, questionExplain } from './texts.js';
 import {
-  PARSERS, isAnswered, isHelpRequest, parseYesNo, detectLanguage, parseLanguageSwitch, isJobInterest,
+  PARSERS, isAnswered, isHelpRequest, parseYesNo, detectLanguage, parseLanguageSwitch, isJobInterest, splitNumbered,
 } from './parsers.js';
 import { logger } from '../../utils/logger.js';
 
@@ -53,6 +53,59 @@ function nextQuestion(cand, skipped = []) {
   return index === -1 ? null : { question: QUESTIONS[index], index };
 }
 
+function listMessage(lang, questions) {
+  const lines = questions.map((q, i) => `${i + 1}. ${questionText(lang, q)}`).join('\n');
+  return `${t(lang, 'all_intro')}\n\n${lines}\n\n${t(lang, 'all_example')}`;
+}
+
+// Handles a reply to the numbered question list. Returns null when the message is not a list answer.
+async function handleListAnswer(ctx, text, step) {
+  const { conv, lang } = ctx;
+  const keys = ctx.state.list_keys || [];
+  const cand = await one('SELECT * FROM candidates WHERE id = $1', [conv.candidate_id]);
+  let parts = splitNumbered(text, keys.length);
+  if (!parts.length && step === 'all') {
+    const lines = text.split(/\n+/).map((s) => s.trim()).filter(Boolean);
+    if (lines.length >= 2 && lines.length === keys.length) parts = lines.map((answer, i) => ({ n: i + 1, answer }));
+  }
+  if (step !== 'all') {
+    // During single questions, only treat clearly numbered answers to OTHER open questions as list answers.
+    const current = step.slice(2);
+    const open = parts.filter((p) => keys[p.n - 1] && !isAnswered(keys[p.n - 1], cand));
+    if (!(parts.length >= 2 || (open.length === 1 && keys[open[0].n - 1] !== current))) return null;
+  }
+  if (!parts.length) {
+    if (isHelpRequest(text)) {
+      await ctx.send(t(lang, 'all_explain'));
+      return { handled: true, action: 'explain' };
+    }
+    ctx.state.attempts = (ctx.state.attempts || 0) + 1;
+    if (ctx.state.attempts >= 2) {
+      // Could not read the list twice: continue question by question.
+      ctx.state.attempts = 0;
+      await askNext(ctx, { intro: t(lang, 'all_fallback') });
+      return { handled: true, action: 'list_fallback' };
+    }
+    await saveState(conv.id, { state: ctx.state });
+    await ctx.send(`${t(lang, 'all_unclear')}\n\n${t(lang, 'all_example')}`);
+    return { handled: true, action: 'list_unclear' };
+  }
+  const saved = {};
+  for (const p of parts) {
+    const key = keys[p.n - 1];
+    if (!key || isAnswered(key, cand)) continue;
+    const r = PARSERS[key](p.answer);
+    if (r.ok) Object.assign(saved, r.values);
+  }
+  if (Object.keys(saved).length) await updateCandidate(cand.id, saved);
+  ctx.state.attempts = 0;
+  const after = await one('SELECT * FROM candidates WHERE id = $1', [cand.id]);
+  const remaining = nextQuestion(after, ctx.state.skipped || []);
+  const intro = remaining ? (Object.keys(saved).length ? t(lang, 'all_more') : `${t(lang, 'not_understood')} ${t(lang, 'all_fallback')}`) : undefined;
+  await askNext(ctx, { intro });
+  return { handled: true, action: 'list_saved', saved };
+}
+
 function promptFor(lang, q, index) {
   return `${t(lang, 'question_prefix', { n: index + 1, total: QUESTIONS.length })} ${questionText(lang, q)}`;
 }
@@ -62,6 +115,15 @@ async function askNext(ctx, { intro } = {}) {
   const { conv, lang, send } = ctx;
   const cand = await one('SELECT * FROM candidates WHERE id = $1', [conv.candidate_id]);
   const next = nextQuestion(cand, ctx.state.skipped || []);
+  // "All at once" mode: send every open question in one numbered message (only once per registration).
+  const open = QUESTIONS.filter((q) => !isAnswered(q.key, cand) && !(ctx.state.skipped || []).includes(q.key));
+  if (next && open.length >= 2 && !ctx.state.list_sent && (await getSetting('bot.question_mode')) === 'all') {
+    if (EARLY_STATUSES.includes(cand.status) && cand.status !== 'information_requested') await setCandidateStatus(cand, 'information_requested');
+    ctx.state = { ...ctx.state, list_sent: true, list_keys: open.map((q) => q.key), attempts: 0 };
+    await saveState(conv.id, { step: 'all', state: ctx.state, status: 'in_progress' });
+    await send(`${intro ? `${intro}\n\n` : ''}${listMessage(lang, open)}`);
+    return;
+  }
   if (next) {
     if (EARLY_STATUSES.includes(cand.status) && cand.status !== 'information_requested') await setCandidateStatus(cand, 'information_requested');
     await saveState(conv.id, { step: `q:${next.question.key}`, state: { ...ctx.state, attempts: 0 }, status: 'in_progress' });
@@ -204,6 +266,11 @@ export async function handleIncoming(conversationId, message) {
     return unclear(ctx, t(lang, 'consent_explain'));
   }
 
+  if (step === 'all' || (step.startsWith('q:') && state.list_keys)) {
+    const r = await handleListAnswer(ctx, text, step);
+    if (r) return r;
+  }
+
   if (step.startsWith('q:')) {
     const key = step.slice(2);
     const question = QUESTIONS.find((q) => q.key === key);
@@ -336,7 +403,10 @@ export async function sendFollowUp(conversationId, { userId } = {}) {
       if (q) pending = `\n\n${questionText(lang, q)}`;
     } else if (conv.bot_step === 'intro') pending = `\n\n${t(lang, 'intro', { recruiter: await getSetting('bot.recruiter_name') })}`;
     else if (conv.bot_step === 'consent') pending = `\n\n${t(lang, 'consent')}`;
-    else if (conv.bot_step === 'cv') pending = `\n\n${t(lang, 'cv_offer')}`;
+    else if (conv.bot_step === 'all') {
+      const keys = conv.bot_state?.list_keys || [];
+      pending = `\n\n${listMessage(lang, keys.map((k) => QUESTIONS.find((q) => q.key === k)).filter(Boolean))}`;
+    } else if (conv.bot_step === 'cv') pending = `\n\n${t(lang, 'cv_offer')}`;
     return sendMessage(conv, `${t(lang, 'followup', { name: firstName(cand) })}${pending}`, { sender: 'user', userId });
   }
   const name = await getSetting('bot.followup_template_name');

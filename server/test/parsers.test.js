@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
   parseYesNo, isHelpRequest, parseAge, parseName, parseLocation, parseEnglish, parseCertificates,
-  parseAvailability, parseExperience, detectLanguage, parseLanguageSwitch,
+  parseAvailability, parseExperience, detectLanguage, parseLanguageSwitch, splitNumbered,
 } from '../src/services/bot/parsers.js';
 
 test('yes/no in several languages', () => {
@@ -77,4 +77,11 @@ test('language detection', () => {
   assert.equal(parseLanguageSwitch('Nederlands graag'), 'nl');
   assert.equal(parseLanguageSwitch('English please'), 'en');
   assert.equal(parseLanguageSwitch('good'), null);
+});
+
+test('numbered list answers', () => {
+  assert.deepEqual(splitNumbered('1. Anna\n2. 28\n3) Polish', 12), [{ n: 1, answer: 'Anna' }, { n: 2, answer: '28' }, { n: 3, answer: 'Polish' }]);
+  assert.deepEqual(splitNumbered('1. Jan 2. 14-03-1996 11. 01.12.2026', 12), [{ n: 1, answer: 'Jan' }, { n: 2, answer: '14-03-1996' }, { n: 11, answer: '01.12.2026' }]);
+  assert.deepEqual(splitNumbered('I am 28', 12), []);
+  assert.deepEqual(splitNumbered('15. something', 12), []);
 });
