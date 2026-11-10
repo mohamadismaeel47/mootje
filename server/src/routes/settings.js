@@ -16,7 +16,8 @@ router.get('/', async (req, res) => {
   res.json({
     settings: await getPublicSettings(),
     webhookUrl: `${base.replace(/\/$/, '')}/api/webhooks/whatsapp`,
-    publicUrlConfigured: !!config.publicUrl,
+    // A public https address (set explicitly, or detected behind the hosting proxy) is enough for Meta.
+    publicUrlConfigured: !!config.publicUrl || (req.protocol === 'https' && !/^(localhost|127\.0\.0\.1)(:|$)/.test(req.get('host') || '')),
     whatsappMissing: await missingConfig(),
     smtpConfigured: await smtpConfigured(),
   });
