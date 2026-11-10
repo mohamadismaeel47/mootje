@@ -180,3 +180,14 @@ test('settings: secrets are encrypted and never returned', async () => {
   assert.equal((await admin.get('/api/settings')).body.settings['whatsapp.access_token'].isSet, true);
   assert.ok(s.webhookUrl.endsWith('/api/webhooks/whatsapp'));
 });
+
+test('public privacy, terms and data deletion pages work without login', async () => {
+  const a = makeAgent();
+  for (const path of ['/privacy', '/terms', '/data-deletion']) {
+    const r = await a.raw.get(path);
+    assert.equal(r.status, 200, path);
+    assert.match(r.headers['content-type'], /html/);
+  }
+  assert.match((await a.raw.get('/privacy')).text, /never ask for or store the number itself/);
+  assert.match((await a.raw.get('/data-deletion')).text, /DELETE/);
+});

@@ -18,6 +18,7 @@ import settingsRoutes from './routes/settings.js';
 import webhookRoutes from './routes/webhook.js';
 import submissionRoutes from './routes/submissions.js';
 import fileRoutes from './routes/files.js';
+import publicPages from './routes/public-pages.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -38,6 +39,8 @@ export function createApp() {
   }));
 
   app.get('/health', (_req, res) => res.json({ ok: true }));
+  // Public privacy policy, terms and data deletion pages (needed to publish the Meta app).
+  app.use(publicPages);
 
   // The WhatsApp webhook needs the raw request body to verify Meta's signature,
   // so it is mounted BEFORE the JSON parser.
