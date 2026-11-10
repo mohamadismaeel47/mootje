@@ -48,7 +48,7 @@ router.get('/', async (req, res) => {
 
 router.get('/:id', async (req, res) => {
   const v = await one('SELECT v.*, a.name AS agency_name FROM vacancies v LEFT JOIN agencies a ON a.id = v.agency_id WHERE v.id = $1', [Number(req.params.id)]);
-  if (!v) throw notFound('Vacancy not found');
+  if (!v) throw notFound('Vacature niet gevonden');
   const submissions = await many(`
     SELECT s.*, c.full_name, c.phone FROM submissions s JOIN candidates c ON c.id = s.candidate_id
     WHERE s.vacancy_id = $1 ORDER BY s.created_at DESC`, [v.id]);
@@ -57,7 +57,7 @@ router.get('/:id', async (req, res) => {
 
 router.get('/:id/matches', async (req, res) => {
   const v = await one('SELECT * FROM vacancies WHERE id = $1', [Number(req.params.id)]);
-  if (!v) throw notFound('Vacancy not found');
+  if (!v) throw notFound('Vacature niet gevonden');
   res.json(await matchVacancyToCandidates(v, { minScore: Number(req.query.min_score) || 0 }));
 });
 
@@ -79,7 +79,7 @@ router.put('/:id', requireRole('recruiter'), validate(schema), async (req, res) 
      WHERE id = $${values.length} RETURNING *`,
     values,
   );
-  if (!v) throw notFound('Vacancy not found');
+  if (!v) throw notFound('Vacature niet gevonden');
   res.json(v);
 });
 

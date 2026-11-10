@@ -20,7 +20,7 @@ async function request(method, url, body, { form } = {}) {
   const data = type.includes('application/json') ? await res.json().catch(() => ({})) : await res.text();
   if (!res.ok) {
     if (res.status === 401 && !url.startsWith('/auth/')) onUnauthorized();
-    const msg = (data && data.error) || `Request failed (${res.status})`;
+    const msg = (data && data.error) || `Verzoek mislukt (${res.status})`;
     throw new ApiError(data?.hint ? `${msg} — ${data.hint}` : msg, res.status, data);
   }
   return data;
@@ -48,23 +48,23 @@ export function qs(params) {
 }
 
 export const STATUS_LABELS = {
-  new: 'New',
-  contacted: 'Contacted',
-  information_requested: 'Information requested',
-  information_complete: 'Information complete',
-  available: 'Available',
-  sent_to_agency: 'Sent to agency',
-  interview: 'Interview',
-  placed: 'Placed',
-  rejected: 'Rejected',
-  not_interested: 'Not interested',
+  new: 'Nieuw',
+  contacted: 'Benaderd',
+  information_requested: 'Informatie gevraagd',
+  information_complete: 'Informatie compleet',
+  available: 'Beschikbaar',
+  sent_to_agency: 'Naar bureau gestuurd',
+  interview: 'Sollicitatiegesprek',
+  placed: 'Geplaatst',
+  rejected: 'Afgewezen',
+  not_interested: 'Geen interesse',
 };
 export const STATUSES = Object.keys(STATUS_LABELS);
 
-export const ENGLISH_LABELS = { none: 'None', basic: 'Basic', good: 'Good', fluent: 'Fluent' };
+export const ENGLISH_LABELS = { none: 'Geen', basic: 'Basis', good: 'Goed', fluent: 'Vloeiend' };
 
 export const fmtPhone = (p) => (p ? `+${p}` : '');
-export const fmtDate = (d) => (d ? new Date(d).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '—');
-export const fmtDateTime = (d) => (d ? new Date(d).toLocaleString('en-GB', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }) : '—');
-export const fmtTime = (d) => (d ? new Date(d).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }) : '');
-export const yesNo = (v) => (v === true ? 'Yes' : v === false ? 'No' : '—');
+export const fmtDate = (d) => (d ? new Date(d).toLocaleDateString('nl-NL', { day: '2-digit', month: 'short', year: 'numeric' }) : '—');
+export const fmtDateTime = (d) => (d ? new Date(d).toLocaleString('nl-NL', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }) : '—');
+export const fmtTime = (d) => (d ? new Date(d).toLocaleTimeString('nl-NL', { hour: '2-digit', minute: '2-digit' }) : '');
+export const yesNo = (v) => (v === true ? 'Ja' : v === false ? 'Nee' : '—');

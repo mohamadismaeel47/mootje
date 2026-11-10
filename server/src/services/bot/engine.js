@@ -145,13 +145,13 @@ async function complete(ctx, cand, intro) {
   if (EARLY_STATUSES.includes(cand.status)) await setCandidateStatus(cand, 'information_complete');
   const text = t(lang, 'completed', { name: firstName(cand) });
   await send(intro ? `${intro}\n\n${text}` : text);
-  await notify('registration_complete', `Registration complete: ${cand.full_name || `+${cand.phone}`}`,
-    'All registration questions were answered via WhatsApp.', `/candidates/${cand.id}`);
+  await notify('registration_complete', `Inschrijving compleet: ${cand.full_name || `+${cand.phone}`}`,
+    'Alle vragen zijn via WhatsApp beantwoord.', `/candidates/${cand.id}`);
 }
 
 async function flagAttention(conv, cand, reason) {
   await query(`UPDATE conversations SET status = 'needs_attention' WHERE id = $1`, [conv.id]);
-  await notify('needs_attention', `Check conversation: ${cand.full_name || `+${cand.phone}`}`, reason, `/inbox/${conv.id}`);
+  await notify('needs_attention', `Controleer gesprek: ${cand.full_name || `+${cand.phone}`}`, reason, `/inbox/${conv.id}`);
 }
 
 // Main entry point: one incoming message from a candidate.
@@ -184,8 +184,8 @@ export async function handleIncoming(conversationId, message) {
   if (['DELETE', 'VERWIJDER', 'VERWIJDEREN', 'DELETE MY DATA'].includes(upper)) {
     await query('UPDATE candidates SET deletion_requested_at = now() WHERE id = $1', [cand.id]);
     await query(`UPDATE conversations SET mode = 'manual', status = 'needs_attention' WHERE id = $1`, [conv.id]);
-    await notify('deletion_request', `Data deletion request: ${cand.full_name || `+${cand.phone}`}`,
-      'The candidate asked to delete their data (GDPR). Open the profile and use "Delete candidate".', `/candidates/${cand.id}`);
+    await notify('deletion_request', `Verzoek om gegevens te verwijderen: ${cand.full_name || `+${cand.phone}`}`,
+      'De kandidaat vraagt om zijn gegevens te verwijderen (AVG). Open het profiel en klik op "Verwijderen".', `/candidates/${cand.id}`);
     await ctx.send(t(lang, 'deletion_ack'));
     return { handled: true, action: 'deletion_request' };
   }
@@ -260,7 +260,7 @@ export async function handleIncoming(conversationId, message) {
     if (yn === false) {
       await saveState(conv.id, { step: 'closed_no_consent', status: 'closed' });
       await ctx.send(t(lang, 'consent_declined'));
-      await notify('no_consent', `No consent: +${cand.phone}`, 'The candidate did not agree to the privacy statement. No answers will be collected.', `/inbox/${conv.id}`);
+      await notify('no_consent', `Geen toestemming: +${cand.phone}`, 'De kandidaat ging niet akkoord met de privacyverklaring. Er worden geen antwoorden verzameld.', `/inbox/${conv.id}`);
       return { handled: true, action: 'consent_declined' };
     }
     return unclear(ctx, t(lang, 'consent_explain'));
@@ -289,9 +289,9 @@ export async function handleIncoming(conversationId, message) {
     state.attempts = (state.attempts || 0) + 1;
     if (state.attempts >= MAX_ATTEMPTS) {
       // Do not get stuck: keep the raw answer in the notes for the recruiter, and move on.
-      const note = `[WhatsApp] Unclear answer to "${questionText('en', question)}": ${text.slice(0, 300)}`;
+      const note = `[WhatsApp] Onduidelijk antwoord op "${questionText('nl', question)}": ${text.slice(0, 300)}`;
       await query(`UPDATE candidates SET notes = CONCAT_WS(E'\\n', notes, $2::text), updated_at = now() WHERE id = $1`, [cand.id, note]);
-      await flagAttention(conv, cand, `The candidate could not answer "${questionText('en', question)}" after ${MAX_ATTEMPTS} tries. The answer was saved in the notes.`);
+      await flagAttention(conv, cand, `De kandidaat kon de vraag "${questionText('nl', question)}" na ${MAX_ATTEMPTS} pogingen niet beantwoorden. Het antwoord staat in de notities.`);
       await skipQuestion(ctx, key);
       return { handled: true, action: 'skipped' };
     }
@@ -347,7 +347,7 @@ async function unclear(ctx, explanation) {
   const { conv, lang, state } = ctx;
   state.attempts = (state.attempts || 0) + 1;
   await saveState(conv.id, { state });
-  if (state.attempts >= MAX_ATTEMPTS) await flagAttention(conv, ctx.cand, 'The candidate gave several unclear answers.');
+  if (state.attempts >= MAX_ATTEMPTS) await flagAttention(conv, ctx.cand, 'De kandidaat gaf meerdere onduidelijke antwoorden.');
   await ctx.send(`${t(lang, 'not_understood')} ${explanation}`);
   return { handled: true, action: 'unclear' };
 }
@@ -381,7 +381,7 @@ export async function startConversation(conversationId, { userId } = {}) {
   } else {
     const name = await getSetting('bot.intro_template_name');
     if (!name) {
-      const err = new Error('To send the first message you need an approved WhatsApp template. Create one in Meta (for example with the intro text) and enter its name in Settings > Bot.');
+      const err = new Error('Om het eerste bericht te sturen heb je een goedgekeurde WhatsApp-template nodig. Maak er een in Meta en vul de naam in bij Instellingen > Assistent.');
       err.status = 400;
       throw err;
     }
@@ -411,7 +411,7 @@ export async function sendFollowUp(conversationId, { userId } = {}) {
   }
   const name = await getSetting('bot.followup_template_name');
   if (!name) {
-    const err = new Error('The 24-hour window is closed. Set a follow-up template in Settings > Bot (it must be approved by Meta), or pick a template manually.');
+    const err = new Error('Het 24-uursvenster is gesloten. Stel een herinneringstemplate in bij Instellingen > Assistent (goedgekeurd door Meta), of kies zelf een template.');
     err.status = 409;
     throw err;
   }

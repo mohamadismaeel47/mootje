@@ -39,16 +39,16 @@ router.post('/', editor, validate(z.object({
   notes: z.string().trim().max(3000).nullable().optional(),
 })), async (req, res) => {
   const candidate = await one('SELECT * FROM candidates WHERE id = $1', [req.body.candidate_id]);
-  if (!candidate) throw notFound('Candidate not found');
+  if (!candidate) throw notFound('Kandidaat niet gevonden');
   let agencyId = req.body.agency_id || null;
   let score = null;
   if (req.body.vacancy_id) {
     const vacancy = await one('SELECT * FROM vacancies WHERE id = $1', [req.body.vacancy_id]);
-    if (!vacancy) throw notFound('Vacancy not found');
+    if (!vacancy) throw notFound('Vacature niet gevonden');
     agencyId = agencyId || vacancy.agency_id;
     score = computeMatch(candidate, vacancy).score;
   }
-  if (!agencyId) throw badRequest('Choose an agency (or a vacancy that is linked to an agency)');
+  if (!agencyId) throw badRequest('Kies een bureau (of een vacature die aan een bureau is gekoppeld)');
   const s = await one(
     `INSERT INTO submissions(candidate_id, vacancy_id, agency_id, match_score, notes) VALUES ($1,$2,$3,$4,$5) RETURNING *`,
     [candidate.id, req.body.vacancy_id || null, agencyId, score, req.body.notes || null],
@@ -59,40 +59,40 @@ router.post('/', editor, validate(z.object({
 
 // Step 2: the recruiter approves and sends. Optionally emails the agency with the CV attached.
 router.post('/:id/send', editor, validate(z.object({
-  confirm: z.literal(true, { message: 'Please confirm that you want to send this candidate' }),
+  confirm: z.literal(true, { message: 'Bevestig dat je deze kandidaat wilt versturen' }),
   send_email: z.boolean().default(false),
   cv_file_id: z.coerce.number().int().positive().nullable().optional(),
   message: z.string().trim().max(5000).optional(),
 })), async (req, res) => {
   const s = await one(`${LIST_SQL} WHERE s.id = $1`, [Number(req.params.id)]);
-  if (!s) throw notFound('Submission not found');
+  if (!s) throw notFound('Voorstel niet gevonden');
   const candidate = await one('SELECT * FROM candidates WHERE id = $1', [s.candidate_id]);
   let cv = null;
   if (req.body.cv_file_id) {
     cv = await one('SELECT * FROM candidate_files WHERE id = $1 AND candidate_id = $2', [req.body.cv_file_id, s.candidate_id]);
-    if (!cv) throw badRequest('This CV does not belong to the candidate');
+    if (!cv) throw badRequest('Dit cv hoort niet bij deze kandidaat');
   }
   let emailed = false;
   if (req.body.send_email) {
-    if (!s.agency_email) throw badRequest('This agency has no email address');
-    if (!candidate.consent_given) throw badRequest('The candidate has not given privacy consent. Ask for consent before sharing their data.');
+    if (!s.agency_email) throw badRequest('Dit bureau heeft geen e-mailadres');
+    if (!candidate.consent_given) throw badRequest('De kandidaat heeft geen privacytoestemming gegeven. Vraag eerst toestemming voordat je gegevens deelt.');
     const lines = [
-      req.body.message || `Hello${s.agency_name ? ` ${s.agency_name}` : ''},\n\nPlease find a candidate${s.vacancy_title ? ` for "${s.vacancy_title}"` : ''} below.`,
+      req.body.message || `Beste ${s.agency_name || 'collega'},\n\nHieronder vind je een kandidaat${s.vacancy_title ? ` voor "${s.vacancy_title}"` : ''}.`,
       '',
-      `Name: ${candidate.full_name || '-'}`,
-      `Phone: ${formatPhone(candidate.phone)}`,
-      candidate.email ? `Email: ${candidate.email}` : null,
-      candidate.age ? `Age: ${candidate.age}` : null,
-      candidate.nationality ? `Nationality: ${candidate.nationality}` : null,
-      `Lives in: ${[candidate.current_city, candidate.current_country].filter(Boolean).join(', ') || '-'}`,
-      `English: ${candidate.english_level || '-'}`,
-      `Driving licence: ${candidate.driving_licence ? 'yes' : 'no'} / Own car: ${candidate.own_car ? 'yes' : 'no'}`,
-      `Certificates: ${[candidate.forklift && 'forklift', candidate.ept && 'EPT', candidate.reach_truck && 'reach truck'].filter(Boolean).join(', ') || 'none'}`,
-      candidate.work_experience ? `Experience: ${candidate.work_experience}` : null,
-      candidate.availability ? `Available: ${candidate.availability}` : null,
+      `Naam: ${candidate.full_name || '-'}`,
+      `Telefoon: ${formatPhone(candidate.phone)}`,
+      candidate.email ? `E-mail: ${candidate.email}` : null,
+      candidate.age ? `Leeftijd: ${candidate.age}` : null,
+      candidate.nationality ? `Nationaliteit: ${candidate.nationality}` : null,
+      `Woonplaats: ${[candidate.current_city, candidate.current_country].filter(Boolean).join(', ') || '-'}`,
+      `Engels: ${{ none: 'geen', basic: 'een beetje', good: 'goed', fluent: 'vloeiend' }[candidate.english_level] || '-'}`,
+      `Rijbewijs: ${candidate.driving_licence ? 'ja' : 'nee'} / Eigen auto: ${candidate.own_car ? 'ja' : 'nee'}`,
+      `Certificaten: ${[candidate.forklift && 'heftruck', candidate.ept && 'EPT', candidate.reach_truck && 'reachtruck'].filter(Boolean).join(', ') || 'geen'}`,
+      candidate.work_experience ? `Ervaring: ${candidate.work_experience}` : null,
+      candidate.availability ? `Beschikbaar: ${candidate.availability}` : null,
     ].filter((l) => l !== null);
     const attachments = cv ? [{ filename: cv.original_name, content: await fs.readFile(filePath(cv.stored_name)), contentType: cv.mime_type }] : [];
-    await sendMail({ to: s.agency_email, subject: `Candidate: ${candidate.full_name || 'new candidate'}${s.vacancy_title ? ` - ${s.vacancy_title}` : ''}`, text: lines.join('\n'), attachments });
+    await sendMail({ to: s.agency_email, subject: `Kandidaat: ${candidate.full_name || 'nieuwe kandidaat'}${s.vacancy_title ? ` - ${s.vacancy_title}` : ''}`, text: lines.join('\n'), attachments });
     emailed = true;
   }
   const updated = await one(
@@ -130,7 +130,7 @@ router.patch('/:id', editor, validate(z.object({
 router.delete('/:id', editor, async (req, res) => {
   const s = await one('SELECT * FROM submissions WHERE id = $1', [Number(req.params.id)]);
   if (!s) throw notFound();
-  if (s.status !== 'proposed' && req.user.role !== 'admin') throw badRequest('Only proposals that were not sent yet can be removed');
+  if (s.status !== 'proposed' && req.user.role !== 'admin') throw badRequest('Alleen voorstellen die nog niet zijn verstuurd, kunnen worden verwijderd');
   await query('DELETE FROM submissions WHERE id = $1', [s.id]);
   res.json({ ok: true });
 });

@@ -5,7 +5,7 @@ import { api, qs, ENGLISH_LABELS } from '../api.js';
 import { useAsync, useDebounced, Spinner, ErrorBox, Empty, Modal, Field, useToast } from '../components/ui.jsx';
 import { useAuth } from '../App.jsx';
 
-export const VACANCY_STATUS = { open: ['Open', 'green'], paused: ['Paused', 'amber'], filled: ['Filled', 'blue'], closed: ['Closed', ''] };
+export const VACANCY_STATUS = { open: ['Open', 'green'], paused: ['Gepauzeerd', 'amber'], filled: ['Vervuld', 'blue'], closed: ['Gesloten', ''] };
 export function VacancyStatus({ status }) {
   const [l, c] = VACANCY_STATUS[status] || [status, ''];
   return <span className={`badge ${c}`}>{l}</span>;
@@ -13,9 +13,9 @@ export function VacancyStatus({ status }) {
 
 export function requirementTags(v) {
   return [
-    v.req_driving_licence && 'Driving licence', v.req_own_car && 'Own car', v.req_forklift && 'Forklift', v.req_ept && 'EPT',
-    v.req_reach_truck && 'Reach truck', v.req_experience && 'Experience',
-    v.min_english_level && v.min_english_level !== 'none' && `English: ${ENGLISH_LABELS[v.min_english_level]}+`,
+    v.req_driving_licence && 'Rijbewijs', v.req_own_car && 'Eigen auto', v.req_forklift && 'Heftruck', v.req_ept && 'EPT',
+    v.req_reach_truck && 'Reachtruck', v.req_experience && 'Ervaring',
+    v.min_english_level && v.min_english_level !== 'none' && `Engels: ${ENGLISH_LABELS[v.min_english_level]}+`,
     ...(v.required_languages || []),
   ].filter(Boolean);
 }
@@ -31,22 +31,22 @@ export default function Vacancies() {
   return (
     <>
       <div className="page-head">
-        <div><h1>Vacancies</h1><p>Jobs from your agencies. Matching uses the requirements you set here.</p></div>
-        {can('recruiter') && <button type="button" className="btn primary" onClick={() => setEdit({})}><Plus size={16} /> New vacancy</button>}
+        <div><h1>Vacatures</h1><p>Banen van je uitzendbureaus. De matching gebruikt de eisen die je hier invult.</p></div>
+        {can('recruiter') && <button type="button" className="btn primary" onClick={() => setEdit({})}><Plus size={16} /> Nieuwe vacature</button>}
       </div>
       <div className="card">
         <div className="toolbar">
-          <div className="search"><Search size={16} /><input type="search" placeholder="Search title or location" value={q} onChange={(e) => setQ(e.target.value)} aria-label="Search vacancies" /></div>
+          <div className="search"><Search size={16} /><input type="search" placeholder="Zoek op titel of plaats" value={q} onChange={(e) => setQ(e.target.value)} aria-label="Vacatures zoeken" /></div>
           <select value={status} onChange={(e) => setStatus(e.target.value)} aria-label="Status">
-            <option value="">All statuses</option>
+            <option value="">Alle statussen</option>
             {Object.entries(VACANCY_STATUS).map(([k, [l]]) => <option key={k} value={k}>{l}</option>)}
           </select>
         </div>
         <ErrorBox error={error} />
-        {loading && !data ? <Spinner /> : data?.length === 0 ? <Empty icon={Briefcase} title="No vacancies">Create your first vacancy.</Empty> : (
+        {loading && !data ? <Spinner /> : data?.length === 0 ? <Empty icon={Briefcase} title="Geen vacatures">Maak je eerste vacature.</Empty> : (
           <div className="table-wrap">
             <table className="table">
-              <thead><tr><th>Job</th><th>Agency</th><th>Requirements</th><th>Positions</th><th>Candidates</th><th>Status</th></tr></thead>
+              <thead><tr><th>Functie</th><th>Bureau</th><th>Eisen</th><th>Plaatsen</th><th>Kandidaten</th><th>Status</th></tr></thead>
               <tbody>
                 {data?.map((v) => (
                   <tr key={v.id} className="click" onClick={() => navigate(`/vacancies/${v.id}`)}>
@@ -92,35 +92,35 @@ export function VacancyForm({ vacancy, onClose, onSaved }) {
     };
     try {
       const v = vacancy.id ? await api.put(`/vacancies/${vacancy.id}`, body) : await api.post('/vacancies', body);
-      toast('Vacancy saved', 'success'); onSaved(v); onClose();
+      toast('Vacature opgeslagen', 'success'); onSaved(v); onClose();
     } catch (err) { setError(err); } finally { setBusy(false); }
   };
   const cb = (k, l) => <label className="checkbox"><input type="checkbox" checked={!!f[k]} onChange={set(k)} /> {l}</label>;
   return (
-    <Modal title={vacancy.id ? 'Edit vacancy' : 'New vacancy'} wide onClose={onClose} footer={<><button type="button" className="btn" onClick={onClose}>Cancel</button><button type="button" className="btn primary" disabled={busy || !f.title} onClick={save}>Save vacancy</button></>}>
+    <Modal title={vacancy.id ? 'Vacature bewerken' : 'Nieuwe vacature'} wide onClose={onClose} footer={<><button type="button" className="btn" onClick={onClose}>Annuleren</button><button type="button" className="btn primary" disabled={busy || !f.title} onClick={save}>Vacature opslaan</button></>}>
       <ErrorBox error={error} />
-      <div className="form-section">Job</div>
+      <div className="form-section">Functie</div>
       <div className="form-grid">
-        <Field label="Job title" className="span-2"><input type="text" value={f.title} onChange={set('title')} required autoFocus /></Field>
-        <Field label="Agency" hint={agencies?.length === 0 ? 'Create an agency first' : undefined}>
-          <select value={f.agency_id} onChange={set('agency_id')}><option value="">— No agency —</option>{agencies?.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}</select>
+        <Field label="Functietitel" className="span-2"><input type="text" value={f.title} onChange={set('title')} required autoFocus /></Field>
+        <Field label="Uitzendbureau" hint={agencies?.length === 0 ? 'Maak eerst een uitzendbureau aan' : undefined}>
+          <select value={f.agency_id} onChange={set('agency_id')}><option value="">— Geen bureau —</option>{agencies?.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}</select>
         </Field>
-        <Field label="Location"><input type="text" value={f.location || ''} onChange={set('location')} placeholder="e.g. Breda" /></Field>
-        <Field label="Salary"><input type="text" value={f.salary || ''} onChange={set('salary')} placeholder="e.g. €14.50 per hour" /></Field>
-        <Field label="Working hours"><input type="text" value={f.working_hours || ''} onChange={set('working_hours')} placeholder="e.g. 40 h, 2 shifts" /></Field>
-        <Field label="Available positions"><input type="number" min="0" value={f.positions} onChange={set('positions')} /></Field>
+        <Field label="Plaats"><input type="text" value={f.location || ''} onChange={set('location')} placeholder="bijv. Breda" /></Field>
+        <Field label="Salaris"><input type="text" value={f.salary || ''} onChange={set('salary')} placeholder="bijv. €14,50 per uur" /></Field>
+        <Field label="Werktijden"><input type="text" value={f.working_hours || ''} onChange={set('working_hours')} placeholder="bijv. 40 uur, 2-ploegen" /></Field>
+        <Field label="Aantal plaatsen"><input type="number" min="0" value={f.positions} onChange={set('positions')} /></Field>
         <Field label="Status"><select value={f.status} onChange={set('status')}>{Object.entries(VACANCY_STATUS).map(([k, [l]]) => <option key={k} value={k}>{l}</option>)}</select></Field>
       </div>
-      <div className="form-section">Requirements (used for matching)</div>
+      <div className="form-section">Eisen (gebruikt voor matching)</div>
       <div className="grid grid-3" style={{ gap: 10 }}>
-        {cb('req_driving_licence', 'Driving licence')}{cb('req_own_car', 'Own car')}{cb('req_experience', 'Warehouse/production experience')}
-        {cb('req_forklift', 'Forklift certificate')}{cb('req_ept', 'EPT certificate')}{cb('req_reach_truck', 'Reach truck certificate')}
+        {cb('req_driving_licence', 'Rijbewijs')}{cb('req_own_car', 'Eigen auto')}{cb('req_experience', 'Ervaring magazijn/productie')}
+        {cb('req_forklift', 'Heftruckcertificaat')}{cb('req_ept', 'EPT-certificaat')}{cb('req_reach_truck', 'Reachtruckcertificaat')}
       </div>
       <div className="form-grid mt">
-        <Field label="Minimum English level"><select value={f.min_english_level} onChange={set('min_english_level')}>{Object.entries(ENGLISH_LABELS).map(([k, l]) => <option key={k} value={k}>{k === 'none' ? 'Not required' : l}</option>)}</select></Field>
-        <Field label="Other required languages" hint="Comma separated, e.g. Dutch, Polish"><input type="text" value={f.languages_input} onChange={set('languages_input')} /></Field>
-        <Field label="Required experience (description)" className="span-2"><input type="text" value={f.required_experience || ''} onChange={set('required_experience')} placeholder="e.g. 1 year order picking" /></Field>
-        <Field label="Job description" className="span-2"><textarea rows={5} value={f.description || ''} onChange={set('description')} /></Field>
+        <Field label="Minimaal niveau Engels"><select value={f.min_english_level} onChange={set('min_english_level')}>{Object.entries(ENGLISH_LABELS).map(([k, l]) => <option key={k} value={k}>{k === 'none' ? 'Niet nodig' : l}</option>)}</select></Field>
+        <Field label="Andere vereiste talen" hint="Scheid met komma's, bijv. Nederlands, Pools"><input type="text" value={f.languages_input} onChange={set('languages_input')} /></Field>
+        <Field label="Gevraagde ervaring (omschrijving)" className="span-2"><input type="text" value={f.required_experience || ''} onChange={set('required_experience')} placeholder="bijv. 1 jaar orderpicken" /></Field>
+        <Field label="Functieomschrijving" className="span-2"><textarea rows={5} value={f.description || ''} onChange={set('description')} /></Field>
       </div>
     </Modal>
   );

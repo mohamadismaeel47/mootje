@@ -183,7 +183,7 @@ test('24-hour window: free text refused, template required', async () => {
   await pool.query(`UPDATE conversations SET last_inbound_at = now() - interval '25 hours' WHERE id = $1`, [conv.id]);
   const r = await admin.post(`/api/conversations/${conv.id}/messages`).send({ text: 'Are you still there?' });
   assert.equal(r.status, 409);
-  assert.match(r.body.error, /24 hours/);
+  assert.match(r.body.error, /24 uur/);
   const f = await admin.post(`/api/conversations/${conv.id}/follow-up`);
   assert.equal(f.status, 409);
   const tmpl = await admin.post(`/api/conversations/${conv.id}/template`).send({ name: 'job_followup', language: 'en', params: ['Piotr'] });

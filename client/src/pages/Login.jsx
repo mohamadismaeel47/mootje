@@ -39,34 +39,34 @@ export default function Login({ onLogin, redirect }) {
           <div>Recruitment CRM</div>
         </div>
         <div>
-          <h1>Find the right people,<br />faster.</h1>
-          <p>Manage candidates, vacancies and agencies in one place — and let WhatsApp collect candidate information for you.</p>
+          <h1>Vind sneller<br />de juiste mensen.</h1>
+          <p>Beheer kandidaten, vacatures en uitzendbureaus op één plek — en laat WhatsApp de informatie van kandidaten voor je verzamelen.</p>
           <ul>
-            {['Automatic WhatsApp registration', 'Smart vacancy matching', 'Secure, GDPR-friendly storage'].map((t) => (
+            {['Automatische inschrijving via WhatsApp', 'Slimme matching met vacatures', 'Veilige opslag volgens de AVG'].map((t) => (
               <li key={t}><CheckCircle2 size={18} color="#4ea1ff" /> {t}</li>
             ))}
           </ul>
         </div>
-        <div className="small" style={{ color: '#8fa6c4' }}><ShieldCheck size={14} style={{ verticalAlign: -2 }} /> Personal data is encrypted and only visible after login.</div>
+        <div className="small" style={{ color: '#8fa6c4' }}><ShieldCheck size={14} style={{ verticalAlign: -2 }} /> Persoonsgegevens zijn beveiligd en alleen zichtbaar na inloggen.</div>
       </div>
       <div className="auth-form">
         <form onSubmit={submit}>
           <div>
-            <h1>{setup ? 'Create admin account' : 'Log in'}</h1>
-            <p className="muted" style={{ marginTop: 6 }}>{setup ? 'This is the first start. Create the main admin account.' : 'Welcome back. Log in to continue.'}</p>
+            <h1>{setup ? 'Beheerdersaccount maken' : 'Inloggen'}</h1>
+            <p className="muted" style={{ marginTop: 6 }}>{setup ? 'Dit is de eerste keer. Maak het hoofdaccount voor de beheerder.' : 'Welkom terug. Log in om verder te gaan.'}</p>
           </div>
           {error && <Alert type="error">{error}</Alert>}
-          {setup && <Field label="Your name"><input type="text" value={form.name} onChange={set('name')} required autoFocus /></Field>}
-          <Field label="Email"><input type="email" value={form.email} onChange={set('email')} required autoComplete="username" autoFocus={!setup} /></Field>
-          <Field label="Password" hint={setup ? 'At least 10 characters, with letters and numbers.' : undefined}>
+          {setup && <Field label="Je naam"><input type="text" value={form.name} onChange={set('name')} required autoFocus /></Field>}
+          <Field label="E-mail"><input type="email" value={form.email} onChange={set('email')} required autoComplete="username" autoFocus={!setup} /></Field>
+          <Field label="Wachtwoord" hint={setup ? 'Minstens 10 tekens, met letters en cijfers.' : undefined}>
             <input type="password" value={form.password} onChange={set('password')} required autoComplete={setup ? 'new-password' : 'current-password'} />
           </Field>
           {setup && status.setupTokenRequired && (
-            <Field label="Setup token" hint="The SETUP_TOKEN value from the .env file on the server.">
+            <Field label="Setup-token" hint="De waarde van SETUP_TOKEN uit Railway (variabelen).">
               <input type="password" value={form.setupToken} onChange={set('setupToken')} required />
             </Field>
           )}
-          <button type="submit" className="btn primary" style={{ height: 42 }} disabled={busy}>{busy ? 'Please wait…' : setup ? 'Create account' : 'Log in'}</button>
+          <button type="submit" className="btn primary" style={{ height: 42 }} disabled={busy}>{busy ? 'Even geduld…' : setup ? 'Account maken' : 'Inloggen'}</button>
         </form>
       </div>
     </div>

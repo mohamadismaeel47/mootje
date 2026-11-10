@@ -2,37 +2,37 @@ import ExcelJS from 'exceljs';
 
 // Column definitions shared by export and import. `key` = database column.
 export const SHEET_COLUMNS = [
-  { key: 'full_name', header: 'Full name' },
-  { key: 'phone', header: 'Phone', format: (v) => (v ? `+${v}` : '') },
-  { key: 'email', header: 'Email' },
-  { key: 'nationality', header: 'Nationality' },
-  { key: 'current_country', header: 'Country' },
-  { key: 'current_city', header: 'City' },
-  { key: 'has_bsn', header: 'Has BSN', type: 'bool' },
-  { key: 'date_of_birth', header: 'Date of birth' },
-  { key: 'age', header: 'Age', type: 'int' },
-  { key: 'languages', header: 'Languages', type: 'list' },
-  { key: 'english_level', header: 'English level' },
-  { key: 'driving_licence', header: 'Driving licence', type: 'bool' },
-  { key: 'own_car', header: 'Own car', type: 'bool' },
-  { key: 'forklift', header: 'Forklift certificate', type: 'bool' },
-  { key: 'ept', header: 'EPT certificate', type: 'bool' },
-  { key: 'reach_truck', header: 'Reach truck certificate', type: 'bool' },
-  { key: 'has_experience', header: 'Warehouse/production experience', type: 'bool' },
-  { key: 'work_experience', header: 'Work experience' },
-  { key: 'previous_jobs', header: 'Previous jobs' },
-  { key: 'desired_job', header: 'Desired job' },
-  { key: 'availability', header: 'Availability' },
-  { key: 'available_from', header: 'Available from' },
-  { key: 'status', header: 'Status' },
-  { key: 'notes', header: 'Notes' },
-  { key: 'created_at', header: 'Registration date', exportOnly: true },
+  { key: 'full_name', header: 'Volledige naam', en: 'Full name' },
+  { key: 'phone', header: 'Telefoon', en: 'Phone', format: (v) => (v ? `+${v}` : '') },
+  { key: 'email', header: 'E-mail', en: 'Email' },
+  { key: 'nationality', header: 'Nationaliteit', en: 'Nationality' },
+  { key: 'current_country', header: 'Land', en: 'Country' },
+  { key: 'current_city', header: 'Woonplaats', en: 'City' },
+  { key: 'has_bsn', header: 'Heeft BSN', en: 'Has BSN', type: 'bool' },
+  { key: 'date_of_birth', header: 'Geboortedatum', en: 'Date of birth' },
+  { key: 'age', header: 'Leeftijd', en: 'Age', type: 'int' },
+  { key: 'languages', header: 'Talen', en: 'Languages', type: 'list' },
+  { key: 'english_level', header: 'Niveau Engels', en: 'English level' },
+  { key: 'driving_licence', header: 'Rijbewijs', en: 'Driving licence', type: 'bool' },
+  { key: 'own_car', header: 'Eigen auto', en: 'Own car', type: 'bool' },
+  { key: 'forklift', header: 'Heftruckcertificaat', en: 'Forklift certificate', type: 'bool' },
+  { key: 'ept', header: 'EPT-certificaat', en: 'EPT certificate', type: 'bool' },
+  { key: 'reach_truck', header: 'Reachtruckcertificaat', en: 'Reach truck certificate', type: 'bool' },
+  { key: 'has_experience', header: 'Ervaring magazijn/productie', en: 'Warehouse/production experience', type: 'bool' },
+  { key: 'work_experience', header: 'Werkervaring', en: 'Work experience' },
+  { key: 'previous_jobs', header: 'Vorige banen', en: 'Previous jobs' },
+  { key: 'desired_job', header: 'Gewenst werk', en: 'Desired job' },
+  { key: 'availability', header: 'Beschikbaarheid', en: 'Availability' },
+  { key: 'available_from', header: 'Beschikbaar vanaf', en: 'Available from' },
+  { key: 'status', header: 'Status', en: 'Status' },
+  { key: 'notes', header: 'Notities', en: 'Notes' },
+  { key: 'created_at', header: 'Inschrijfdatum', en: 'Registration date', exportOnly: true },
 ];
 
 function cellOut(col, v) {
   if (v === null || v === undefined) return '';
   if (col.format) return col.format(v);
-  if (col.type === 'bool') return v ? 'Yes' : 'No';
+  if (col.type === 'bool') return v ? 'Ja' : 'Nee';
   if (col.type === 'list') return (v || []).join(', ');
   if (v instanceof Date) return v.toISOString().slice(0, 10);
   return v;
@@ -47,7 +47,7 @@ function safe(v) {
 export async function toXlsx(rows) {
   const wb = new ExcelJS.Workbook();
   wb.creator = 'Recruitment CRM';
-  const ws = wb.addWorksheet('Candidates');
+  const ws = wb.addWorksheet('Kandidaten');
   ws.columns = SHEET_COLUMNS.map((c) => ({ header: c.header, key: c.key, width: Math.max(14, c.header.length + 2) }));
   ws.getRow(1).font = { bold: true, color: { argb: 'FFFFFFFF' } };
   ws.getRow(1).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF0F2A4A' } };
@@ -75,7 +75,7 @@ export async function templateXlsx() {
   return toXlsx([]);
 }
 
-const norm = (s) => String(s || '').toLowerCase().replace(/[^a-z]/g, '');
+const norm = (s) => String(s || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z]/g, '');
 const HEADER_ALIASES = {
   name: 'full_name', fullname: 'full_name', naam: 'full_name',
   phone: 'phone', phonenumber: 'phone', telefoon: 'phone', mobile: 'phone', whatsapp: 'phone',
@@ -84,7 +84,7 @@ const HEADER_ALIASES = {
   country: 'current_country', currentcountry: 'current_country', land: 'current_country',
   city: 'current_city', currentcity: 'current_city', woonplaats: 'current_city', plaats: 'current_city',
 };
-for (const c of SHEET_COLUMNS) HEADER_ALIASES[norm(c.header)] = c.key;
+for (const c of SHEET_COLUMNS) { HEADER_ALIASES[norm(c.header)] = c.key; if (c.en) HEADER_ALIASES[norm(c.en)] = c.key; }
 
 function parseBool(v) {
   const s = String(v ?? '').trim().toLowerCase();

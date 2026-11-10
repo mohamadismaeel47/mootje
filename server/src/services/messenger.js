@@ -5,7 +5,7 @@ import { logger } from '../utils/logger.js';
 
 export class WindowClosedError extends Error {
   constructor() {
-    super('More than 24 hours have passed since the candidate last wrote. WhatsApp only allows an approved template message now.');
+    super('Er zijn meer dan 24 uur voorbij sinds de kandidaat voor het laatst schreef. WhatsApp staat nu alleen een goedgekeurde template toe.');
     this.status = 409;
     this.code = 'WINDOW_CLOSED';
   }
@@ -98,7 +98,7 @@ export async function applyStatus({ id, status, errors }) {
   if (!msg) return false;
   if (status === 'failed') {
     const e = errors?.[0];
-    const detail = e ? `${e.title || 'Failed'}${e.code ? ` (code ${e.code})` : ''}${e.error_data?.details ? `: ${e.error_data.details}` : ''}` : 'Delivery failed';
+    const detail = e ? `${e.title || 'Mislukt'}${e.code ? ` (code ${e.code})` : ''}${e.error_data?.details ? `: ${e.error_data.details}` : ''}` : 'Aflevering mislukt';
     await query(`UPDATE messages SET status = 'failed', error = $2 WHERE id = $1`, [msg.id, detail]);
     return true;
   }

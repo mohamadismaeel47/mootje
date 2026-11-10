@@ -29,7 +29,7 @@ export default function CandidateDetail() {
     setStarting(true);
     try {
       const r = await api.post(`/conversations/start/${c.id}`);
-      toast('First WhatsApp message sent', 'success');
+      toast('Eerste WhatsApp-bericht verstuurd', 'success');
       navigate(`/inbox/${r.conversationId}`);
     } catch (err) { toast(err.message, 'error'); } finally { setStarting(false); }
   };
@@ -37,39 +37,39 @@ export default function CandidateDetail() {
   return (
     <>
       <div className="row" style={{ marginBottom: 12 }}>
-        <Link to="/candidates" className="btn ghost sm"><ArrowLeft size={15} /> Candidates</Link>
+        <Link to="/candidates" className="btn ghost sm"><ArrowLeft size={15} /> Kandidaten</Link>
       </div>
       <div className="card" style={{ marginBottom: 16 }}>
         <div className="card-body row wrap" style={{ gap: 16 }}>
           <div className="avatar lg light">{initials(c.full_name)}</div>
           <div style={{ flex: 1, minWidth: 200 }}>
-            <h1>{c.full_name || 'Name not known yet'}</h1>
+            <h1>{c.full_name || 'Naam nog onbekend'}</h1>
             <div className="row wrap muted small" style={{ marginTop: 4, gap: 12 }}>
               <span>{fmtPhone(c.phone)}</span>
               {c.email && <span>{c.email}</span>}
-              <span>Registered {fmtDate(c.created_at)}</span>
-              <span className="badge">{c.source === 'whatsapp' ? 'Via WhatsApp' : c.source === 'import' ? 'Imported' : 'Added manually'}</span>
-              {!c.consent_given && <span className="badge amber">No privacy consent</span>}
+              <span>Ingeschreven {fmtDate(c.created_at)}</span>
+              <span className="badge">{c.source === 'whatsapp' ? 'Via WhatsApp' : c.source === 'import' ? 'Geïmporteerd' : 'Handmatig toegevoegd'}</span>
+              {!c.consent_given && <span className="badge amber">Geen privacytoestemming</span>}
             </div>
           </div>
           <StatusBadge status={c.status} />
           <div className="actions">
             {c.conversation
-              ? <Link to={`/inbox/${c.conversation.id}`} className="btn blue"><MessageCircle size={16} /> Open chat{c.conversation.unread_count > 0 ? ` (${c.conversation.unread_count})` : ''}</Link>
-              : can('recruiter') && <button type="button" className="btn blue" disabled={starting} onClick={startChat}><MessageCircle size={16} /> Start WhatsApp</button>}
-            {can('admin') && <button type="button" className="btn" onClick={() => downloadUrl(`/api/candidates/${c.id}/data-export`)} title="GDPR data export"><FileDown size={16} /> Export data</button>}
-            {can('admin') && <button type="button" className="btn danger" onClick={() => setConfirmDelete(true)}><Trash2 size={16} /> Delete</button>}
+              ? <Link to={`/inbox/${c.conversation.id}`} className="btn blue"><MessageCircle size={16} /> Chat openen{c.conversation.unread_count > 0 ? ` (${c.conversation.unread_count})` : ''}</Link>
+              : can('recruiter') && <button type="button" className="btn blue" disabled={starting} onClick={startChat}><MessageCircle size={16} /> WhatsApp starten</button>}
+            {can('admin') && <button type="button" className="btn" onClick={() => downloadUrl(`/api/candidates/${c.id}/data-export`)} title="AVG: gegevens exporteren"><FileDown size={16} /> Gegevens exporteren</button>}
+            {can('admin') && <button type="button" className="btn danger" onClick={() => setConfirmDelete(true)}><Trash2 size={16} /> Verwijderen</button>}
           </div>
         </div>
         {c.deletion_requested_at && (
           <div style={{ padding: '0 18px 16px' }}>
-            <Alert type="error"><b>This candidate asked to delete their data</b> on {fmtDateTime(c.deletion_requested_at)} (GDPR). Please delete the candidate{can('admin') ? '' : ' (ask an admin)'} and confirm this to them.</Alert>
+            <Alert type="error"><b>Deze kandidaat heeft gevraagd om zijn gegevens te verwijderen</b> op {fmtDateTime(c.deletion_requested_at)} (AVG). Verwijder de kandidaat{can('admin') ? '' : ' (vraag een beheerder)'} en laat het de kandidaat weten.</Alert>
           </div>
         )}
         <div className="tabs">
           {[
-            ['profile', 'Profile', UserRound], ['matches', 'Matching vacancies', Target], ['files', `CV & files (${c.files.length})`, Paperclip],
-            ['submissions', `Agencies (${c.submissions.length})`, Send], ['history', 'History', History],
+            ['profile', 'Profiel', UserRound], ['matches', 'Passende vacatures', Target], ['files', `Cv & bestanden (${c.files.length})`, Paperclip],
+            ['submissions', `Bureaus (${c.submissions.length})`, Send], ['history', 'Geschiedenis', History],
           ].map(([k, l, I]) => <button type="button" key={k} className={tab === k ? 'on' : ''} onClick={() => setTab(k)}><I size={15} /> {l}</button>)}
         </div>
       </div>
@@ -83,8 +83,8 @@ export default function CandidateDetail() {
           <ul className="timeline">
             {c.history.map((h) => (
               <li key={h.id}>
-                <b>{h.from_status ? `${STATUS_LABELS[h.from_status]} → ${STATUS_LABELS[h.to_status]}` : `Created as ${STATUS_LABELS[h.to_status]}`}</b>
-                <div className="small muted">{fmtDateTime(h.changed_at)} · {h.user_name || 'WhatsApp assistant / system'}</div>
+                <b>{h.from_status ? `${STATUS_LABELS[h.from_status]} → ${STATUS_LABELS[h.to_status]}` : `Aangemaakt als ${STATUS_LABELS[h.to_status]}`}</b>
+                <div className="small muted">{fmtDateTime(h.changed_at)} · {h.user_name || 'WhatsApp-assistent / systeem'}</div>
               </li>
             ))}
           </ul>
@@ -92,9 +92,9 @@ export default function CandidateDetail() {
       )}
 
       {confirmDelete && (
-        <Confirm title="Delete candidate permanently?" danger confirmLabel="Delete permanently" onClose={() => setConfirmDelete(false)}
-          onConfirm={async () => { await api.del(`/candidates/${c.id}`); toast('Candidate and all related data deleted', 'success'); navigate('/candidates'); }}>
-          <p>This deletes <b>{c.full_name || fmtPhone(c.phone)}</b>, all WhatsApp messages, CV files and agency submissions. This cannot be undone.</p>
+        <Confirm title="Kandidaat definitief verwijderen?" danger confirmLabel="Definitief verwijderen" onClose={() => setConfirmDelete(false)}
+          onConfirm={async () => { await api.del(`/candidates/${c.id}`); toast('Kandidaat en alle gegevens verwijderd', 'success'); navigate('/candidates'); }}>
+          <p>Hiermee verwijder je <b>{c.full_name || fmtPhone(c.phone)}</b>, alle WhatsApp-berichten, cv's en voorstellen aan bureaus. Dit kan niet ongedaan worden gemaakt.</p>
         </Confirm>
       )}
     </>
@@ -147,9 +147,9 @@ function Profile({ candidate, onSaved }) {
     <div className="split">
       <div className="card">
         <div className="card-head">
-          <h3>Candidate profile</h3>
+          <h3>Profiel kandidaat</h3>
           <span className={`saved-indicator ${state === 'saved' ? 'ok' : state === 'error' ? 'err' : ''}`}>
-            {state === 'saving' || state === 'pending' ? <><Loader2 size={14} className="spin" /> Saving…</> : state === 'saved' ? <><Check size={14} /> All changes saved</> : state === 'error' ? <><AlertCircle size={14} /> Not saved – check the field</> : 'Changes are saved automatically'}
+            {state === 'saving' || state === 'pending' ? <><Loader2 size={14} className="spin" /> Opslaan…</> : state === 'saved' ? <><Check size={14} /> Alles opgeslagen</> : state === 'error' ? <><AlertCircle size={14} /> Niet opgeslagen – controleer het veld</> : 'Wijzigingen worden automatisch opgeslagen'}
           </span>
         </div>
         <div className="card-body">
@@ -158,16 +158,16 @@ function Profile({ candidate, onSaved }) {
       </div>
       <div className="stack">
         <div className="card">
-          <div className="card-head"><h3>Registration progress</h3></div>
+          <div className="card-head"><h3>Voortgang inschrijving</h3></div>
           <div className="card-body"><Progress c={candidate} /></div>
         </div>
         {candidate.conversation && (
           <div className="card">
-            <div className="card-head"><h3>WhatsApp</h3><Link to={`/inbox/${candidate.conversation.id}`} className="small">Open chat</Link></div>
+            <div className="card-head"><h3>WhatsApp</h3><Link to={`/inbox/${candidate.conversation.id}`} className="small">Chat openen</Link></div>
             <div className="card-body stack small">
-              <div className="row between"><span className="muted">Mode</span><span className={`badge ${candidate.conversation.mode === 'auto' ? 'blue' : 'amber'}`}>{candidate.conversation.mode === 'auto' ? 'Automatic' : 'Manual'}</span></div>
-              <div className="row between"><span className="muted">Status</span><span>{candidate.conversation.status.replace('_', ' ')}</span></div>
-              <div className="row between"><span className="muted">Last message</span><span>{fmtDateTime(candidate.conversation.last_message_at)}</span></div>
+              <div className="row between"><span className="muted">Modus</span><span className={`badge ${candidate.conversation.mode === 'auto' ? 'blue' : 'amber'}`}>{candidate.conversation.mode === 'auto' ? 'Automatisch' : 'Handmatig'}</span></div>
+              <div className="row between"><span className="muted">Status</span><span>{{ new: 'Nieuw', in_progress: 'Bezig', waiting: 'Wacht op antwoord', completed: 'Afgerond', needs_attention: 'Aandacht nodig', closed: 'Gesloten' }[candidate.conversation.status]}</span></div>
+              <div className="row between"><span className="muted">Laatste bericht</span><span>{fmtDateTime(candidate.conversation.last_message_at)}</span></div>
             </div>
           </div>
         )}
@@ -177,11 +177,11 @@ function Profile({ candidate, onSaved }) {
 }
 
 const REQUIRED = [
-  ['Full name', (c) => c.full_name], ['Age', (c) => c.age != null], ['Nationality', (c) => c.nationality],
-  ['Location', (c) => c.current_city || c.current_country], ['BSN (yes/no)', (c) => c.has_bsn != null], ['English', (c) => c.english_level],
-  ['Driving licence', (c) => c.driving_licence != null], ['Own car', (c) => c.own_car != null], ['Experience', (c) => c.has_experience != null],
-  ['Certificates', (c) => c.forklift != null && c.ept != null && c.reach_truck != null], ['Availability', (c) => c.availability || c.available_from],
-  ['Desired job', (c) => c.desired_job],
+  ['Volledige naam', (c) => c.full_name], ['Leeftijd', (c) => c.age != null], ['Nationaliteit', (c) => c.nationality],
+  ['Woonplaats', (c) => c.current_city || c.current_country], ['BSN (ja/nee)', (c) => c.has_bsn != null], ['Engels', (c) => c.english_level],
+  ['Rijbewijs', (c) => c.driving_licence != null], ['Eigen auto', (c) => c.own_car != null], ['Ervaring', (c) => c.has_experience != null],
+  ['Certificaten', (c) => c.forklift != null && c.ept != null && c.reach_truck != null], ['Beschikbaarheid', (c) => c.availability || c.available_from],
+  ['Gewenst werk', (c) => c.desired_job],
 ];
 
 function Progress({ c }) {
@@ -189,7 +189,7 @@ function Progress({ c }) {
   const pct = Math.round((done / REQUIRED.length) * 100);
   return (
     <div className="stack">
-      <div className="row between"><b>{done} of {REQUIRED.length} answered</b><span className="muted">{pct}%</span></div>
+      <div className="row between"><b>{done} van {REQUIRED.length} beantwoord</b><span className="muted">{pct}%</span></div>
       <div className={`progress ${pct === 100 ? 'green' : ''}`}><div style={{ width: `${pct}%` }} /></div>
       <ul className="check-list small">
         {REQUIRED.map(([l, f]) => (
@@ -222,7 +222,7 @@ function Matches({ candidate, onChange }) {
   const propose = async (m) => {
     try {
       await api.post('/submissions', { candidate_id: candidate.id, vacancy_id: m.vacancy.id });
-      toast('Proposal created. Approve it in the "Agencies" tab to send it.', 'success');
+      toast('Voorstel gemaakt. Keur het goed in het tabblad "Bureaus" om het te versturen.', 'success');
       reload(true); onChange();
     } catch (err) { toast(err.message, 'error'); }
   };
@@ -230,10 +230,10 @@ function Matches({ candidate, onChange }) {
   return (
     <div className="card">
       <div className="card-head">
-        <div><h3>Matching vacancies</h3><div className="small muted">Open vacancies compared with this candidate's answers. Nothing is sent without your approval.</div></div>
+        <div><h3>Passende vacatures</h3><div className="small muted">Open vacatures vergeleken met de antwoorden van deze kandidaat. Er wordt niets verstuurd zonder jouw goedkeuring.</div></div>
       </div>
       <ErrorBox error={error} />
-      {data?.length === 0 && <Empty icon={Target} title="No open vacancies">Add vacancies to see matches.</Empty>}
+      {data?.length === 0 && <Empty icon={Target} title="Geen open vacatures">Voeg vacatures toe om matches te zien.</Empty>}
       {data?.map((m) => (
         <div key={m.vacancy.id} className="match">
           <div className="row wrap">
@@ -242,9 +242,9 @@ function Matches({ candidate, onChange }) {
               <Link to={`/vacancies/${m.vacancy.id}`} className="name"><b>{m.vacancy.title}</b></Link>
               <div className="small muted">{[m.vacancy.agency_name, m.vacancy.location, m.vacancy.salary].filter(Boolean).join(' · ')}</div>
             </div>
-            {!m.eligible && <span className="badge red">Does not meet requirements</span>}
+            {!m.eligible && <span className="badge red">Voldoet niet aan de eisen</span>}
             {m.submission_status ? <SubmissionBadge status={m.submission_status} /> : can('recruiter') && (
-              <button type="button" className="btn sm" onClick={() => propose(m)} disabled={!m.vacancy.agency_id} title={m.vacancy.agency_id ? '' : 'Vacancy has no agency'}><Send size={14} /> Propose</button>
+              <button type="button" className="btn sm" onClick={() => propose(m)} disabled={!m.vacancy.agency_id} title={m.vacancy.agency_id ? '' : 'Vacature heeft geen bureau'}><Send size={14} /> Voorstellen</button>
             )}
           </div>
           <MatchChecks m={m} />
@@ -263,34 +263,34 @@ function Files({ candidate, onChange }) {
   const upload = async (file) => {
     if (!file) return;
     setBusy(true);
-    try { await api.upload(`/candidates/${candidate.id}/files`, file, { kind: 'cv' }); toast('File uploaded', 'success'); onChange(); } catch (err) { toast(err.message, 'error'); } finally { setBusy(false); }
+    try { await api.upload(`/candidates/${candidate.id}/files`, file, { kind: 'cv' }); toast('Bestand geüpload', 'success'); onChange(); } catch (err) { toast(err.message, 'error'); } finally { setBusy(false); }
   };
   return (
     <div className="card">
-      <div className="card-head"><h3>CV &amp; files</h3><span className="small muted">PDF, Word, JPG or PNG · max 10 MB · stored privately</span></div>
+      <div className="card-head"><h3>Cv &amp; bestanden</h3><span className="small muted">PDF, Word, JPG of PNG · max 10 MB · privé opgeslagen</span></div>
       <div className="card-body stack">
         {can('recruiter') && (
           <label className={`dropzone ${drag ? 'drag' : ''}`} onDragOver={(e) => { e.preventDefault(); setDrag(true); }} onDragLeave={() => setDrag(false)}
             onDrop={(e) => { e.preventDefault(); setDrag(false); upload(e.dataTransfer.files[0]); }}>
             <input type="file" hidden accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,.webp" onChange={(e) => upload(e.target.files[0])} />
-            <Upload size={22} /><div>{busy ? 'Uploading…' : 'Drop a CV here or click to upload'}</div>
+            <Upload size={22} /><div>{busy ? 'Bezig met uploaden…' : 'Sleep een cv hierheen of klik om te uploaden'}</div>
           </label>
         )}
-        {candidate.files.length === 0 ? <p className="muted small">No files yet. Candidates can also send their CV through WhatsApp.</p> : (
+        {candidate.files.length === 0 ? <p className="muted small">Nog geen bestanden. Kandidaten kunnen hun cv ook via WhatsApp sturen.</p> : (
           <div>
             {candidate.files.map((f) => (
               <div key={f.id} className="file-row">
                 <FileText size={22} className="faint" />
-                <div className="meta"><b>{f.original_name}</b><span className="small muted">{(f.size_bytes / 1024).toFixed(0)} KB · {f.source === 'whatsapp' ? 'Received via WhatsApp' : 'Uploaded'} · {fmtDateTime(f.created_at)}</span></div>
-                <a className="btn sm" href={`/api/files/${f.id}`} target="_blank" rel="noopener noreferrer"><ExternalLink size={14} /> Open</a>
-                <a className="btn sm" href={`/api/files/${f.id}?download=1`}><Download size={14} /> Download</a>
-                {can('recruiter') && <button type="button" className="btn sm danger icon" aria-label="Delete file" onClick={() => setDel(f)}><Trash2 size={14} /></button>}
+                <div className="meta"><b>{f.original_name}</b><span className="small muted">{(f.size_bytes / 1024).toFixed(0)} KB · {f.source === 'whatsapp' ? 'Ontvangen via WhatsApp' : 'Geüpload'} · {fmtDateTime(f.created_at)}</span></div>
+                <a className="btn sm" href={`/api/files/${f.id}`} target="_blank" rel="noopener noreferrer"><ExternalLink size={14} /> Openen</a>
+                <a className="btn sm" href={`/api/files/${f.id}?download=1`}><Download size={14} /> Downloaden</a>
+                {can('recruiter') && <button type="button" className="btn sm danger icon" aria-label="Bestand verwijderen" onClick={() => setDel(f)}><Trash2 size={14} /></button>}
               </div>
             ))}
           </div>
         )}
       </div>
-      {del && <Confirm title="Delete file?" danger confirmLabel="Delete" onClose={() => setDel(null)} onConfirm={async () => { await api.del(`/files/${del.id}`); onChange(); }}><p>Delete <b>{del.original_name}</b>?</p></Confirm>}
+      {del && <Confirm title="Bestand verwijderen?" danger confirmLabel="Verwijderen" onClose={() => setDel(null)} onConfirm={async () => { await api.del(`/files/${del.id}`); onChange(); }}><p><b>{del.original_name}</b> verwijderen?</p></Confirm>}
     </div>
   );
 }
@@ -302,13 +302,13 @@ function CandidateSubmissions({ candidate, onChange }) {
   return (
     <div className="card">
       <div className="card-head">
-        <h3>Agencies &amp; vacancies</h3>
-        {can('recruiter') && <button type="button" className="btn sm" onClick={() => setShowAdd(true)}><Send size={14} /> Propose to agency</button>}
+        <h3>Bureaus &amp; vacatures</h3>
+        {can('recruiter') && <button type="button" className="btn sm" onClick={() => setShowAdd(true)}><Send size={14} /> Voorstellen aan bureau</button>}
       </div>
-      {candidate.submissions.length === 0 ? <Empty icon={Send} title="Not proposed yet">Use “Matching vacancies” or the button above.</Empty> : (
+      {candidate.submissions.length === 0 ? <Empty icon={Send} title="Nog niet voorgesteld">Gebruik “Passende vacatures” of de knop hierboven.</Empty> : (
         <div className="table-wrap">
           <table className="table">
-            <thead><tr><th>Vacancy</th><th>Agency</th><th>Match</th><th>Status</th><th>Sent</th><th /></tr></thead>
+            <thead><tr><th>Vacature</th><th>Bureau</th><th>Match</th><th>Status</th><th>Verstuurd</th><th /></tr></thead>
             <tbody>
               {candidate.submissions.map((s) => (
                 <tr key={s.id}>
@@ -318,7 +318,7 @@ function CandidateSubmissions({ candidate, onChange }) {
                   <td><SubmissionBadge status={s.status} /></td>
                   <td className="sub">{fmtDateTime(s.sent_at)}</td>
                   <td style={{ textAlign: 'right' }}>
-                    {s.status === 'proposed' && can('recruiter') && <button type="button" className="btn sm primary" onClick={() => setSendItem(s)}><Check size={14} /> Approve &amp; send</button>}
+                    {s.status === 'proposed' && can('recruiter') && <button type="button" className="btn sm primary" onClick={() => setSendItem(s)}><Check size={14} /> Goedkeuren &amp; versturen</button>}
                   </td>
                 </tr>
               ))}
@@ -341,30 +341,30 @@ export function ProposeModal({ candidateId, onClose, onDone }) {
   const submit = async () => {
     try {
       await api.post('/submissions', { candidate_id: candidateId, agency_id: form.agency_id || null, vacancy_id: form.vacancy_id || null, notes: form.notes || null });
-      toast('Proposal created', 'success'); onDone(); onClose();
+      toast('Voorstel gemaakt', 'success'); onDone(); onClose();
     } catch (err) { setError(err); }
   };
   return (
-    <Modal title="Propose to agency" onClose={onClose} footer={<><button type="button" className="btn" onClick={onClose}>Cancel</button><button type="button" className="btn primary" onClick={submit}>Create proposal</button></>}>
+    <Modal title="Voorstellen aan bureau" onClose={onClose} footer={<><button type="button" className="btn" onClick={onClose}>Annuleren</button><button type="button" className="btn primary" onClick={submit}>Voorstel maken</button></>}>
       <div className="stack">
         <ErrorBox error={error} />
-        <Field label="Vacancy (optional)">
+        <Field label="Vacature (optioneel)">
           <select value={form.vacancy_id} onChange={(e) => {
             const v = vacancies?.find((x) => String(x.id) === e.target.value);
             setForm({ ...form, vacancy_id: e.target.value, agency_id: v?.agency_id ? String(v.agency_id) : form.agency_id });
           }}>
-            <option value="">— No specific vacancy —</option>
+            <option value="">— Geen specifieke vacature —</option>
             {vacancies?.map((v) => <option key={v.id} value={v.id}>{v.title}{v.agency_name ? ` (${v.agency_name})` : ''}</option>)}
           </select>
         </Field>
-        <Field label="Agency">
+        <Field label="Bureau">
           <select value={form.agency_id} onChange={(e) => setForm({ ...form, agency_id: e.target.value })}>
-            <option value="">Choose agency…</option>
+            <option value="">Kies een bureau…</option>
             {agencies?.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}
           </select>
         </Field>
-        <Field label="Notes"><textarea value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} /></Field>
-        <p className="small muted">This only creates a proposal. You approve and send it in the next step.</p>
+        <Field label="Notities"><textarea value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} /></Field>
+        <p className="small muted">Dit maakt alleen een voorstel. In de volgende stap keur je het goed en verstuur je het.</p>
       </div>
     </Modal>
   );
@@ -380,23 +380,23 @@ export function SendModal({ submission, files, consent, onClose, onDone }) {
     setBusy(true); setError(null);
     try {
       const r = await api.post(`/submissions/${submission.id}/send`, { confirm: true, send_email: sendEmail, cv_file_id: cv ? Number(cv) : null });
-      toast(r.emailed ? 'Candidate emailed to the agency' : 'Marked as sent to the agency', 'success');
+      toast(r.emailed ? 'Kandidaat gemaild naar het bureau' : 'Gemarkeerd als verstuurd naar het bureau', 'success');
       onDone(); onClose();
     } catch (err) { setError(err); } finally { setBusy(false); }
   };
   return (
-    <Modal title="Approve and send to agency" onClose={onClose} footer={<><button type="button" className="btn" onClick={onClose}>Cancel</button><button type="button" className="btn primary" onClick={submit} disabled={busy}><Check size={15} /> I approve – send</button></>}>
+    <Modal title="Goedkeuren en versturen naar bureau" onClose={onClose} footer={<><button type="button" className="btn" onClick={onClose}>Annuleren</button><button type="button" className="btn primary" onClick={submit} disabled={busy}><Check size={15} /> Ik keur goed – versturen</button></>}>
       <div className="stack">
-        <p>You are about to send <b>{submission.full_name || 'this candidate'}</b> to <b>{submission.agency_name}</b>{submission.vacancy_title ? <> for <b>{submission.vacancy_title}</b></> : null}.</p>
-        {!consent && <Alert type="warn">This candidate has not given privacy consent. Ask for consent before you share their data with an agency.</Alert>}
-        <Field label="Attach CV">
+        <p>Je gaat <b>{submission.full_name || 'deze kandidaat'}</b> versturen naar <b>{submission.agency_name}</b>{submission.vacancy_title ? <> voor <b>{submission.vacancy_title}</b></> : null}.</p>
+        {!consent && <Alert type="warn">Deze kandidaat heeft geen privacytoestemming gegeven. Vraag eerst toestemming voordat je gegevens deelt met een bureau.</Alert>}
+        <Field label="Cv bijvoegen">
           <select value={cv} onChange={(e) => setCv(e.target.value)}>
-            <option value="">No CV</option>
+            <option value="">Geen cv</option>
             {files?.map((f) => <option key={f.id} value={f.id}>{f.original_name}</option>)}
           </select>
         </Field>
-        <label className="checkbox"><input type="checkbox" checked={sendEmail} onChange={(e) => setSendEmail(e.target.checked)} /> Email the candidate profile {cv ? 'and CV ' : ''}to the agency now</label>
-        <p className="small muted">Without email, the proposal is only marked as “sent” (for example when you send it yourself). Email requires SMTP settings.</p>
+        <label className="checkbox"><input type="checkbox" checked={sendEmail} onChange={(e) => setSendEmail(e.target.checked)} /> Het profiel {cv ? 'en het cv ' : ''}nu naar het bureau mailen</label>
+        <p className="small muted">Zonder e-mail wordt het voorstel alleen als “verstuurd” gemarkeerd (bijvoorbeeld als je het zelf verstuurt). Voor e-mail zijn SMTP-instellingen nodig.</p>
         <ErrorBox error={error} />
       </div>
     </Modal>

@@ -14,7 +14,7 @@ const schema = z.object({
   contact_person: t(150),
   email: z.string().trim().max(200).nullable().optional()
     .transform((v) => (v ? v.toLowerCase() : null))
-    .refine((v) => !v || z.string().email().safeParse(v).success, 'Invalid email address'),
+    .refine((v) => !v || z.string().email().safeParse(v).success, 'Ongeldig e-mailadres'),
   phone: t(40),
   address: t(300),
   notes: t(5000),
@@ -34,7 +34,7 @@ router.get('/', async (req, res) => {
 router.get('/:id', async (req, res) => {
   const id = Number(req.params.id);
   const agency = await one('SELECT * FROM agencies WHERE id = $1', [id]);
-  if (!agency) throw notFound('Agency not found');
+  if (!agency) throw notFound('Bureau niet gevonden');
   const vacancies = await many('SELECT id, title, location, status, positions FROM vacancies WHERE agency_id = $1 ORDER BY created_at DESC', [id]);
   const submissions = await many(`
     SELECT s.id, s.status, s.sent_at, s.created_at, s.match_score, c.id AS candidate_id, c.full_name, v.title AS vacancy_title
@@ -60,7 +60,7 @@ router.put('/:id', requireRole('recruiter'), validate(schema), async (req, res) 
      WHERE id=$7 RETURNING *`,
     [b.name, b.contact_person, b.email, b.phone, b.address, b.notes, Number(req.params.id)],
   );
-  if (!a) throw notFound('Agency not found');
+  if (!a) throw notFound('Bureau niet gevonden');
   res.json(a);
 });
 

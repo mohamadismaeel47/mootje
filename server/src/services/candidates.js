@@ -15,7 +15,7 @@ const optText = (max = 500) => z.string().trim().max(max).nullable().optional()
 const optBool = z.boolean().nullable().optional();
 const optDate = z.string().trim().nullable().optional()
   .transform((v) => (v ? v : v === '' ? null : v))
-  .refine((v) => v === null || v === undefined || /^\d{4}-\d{2}-\d{2}$/.test(v), 'Use the format YYYY-MM-DD');
+  .refine((v) => v === null || v === undefined || /^\d{4}-\d{2}-\d{2}$/.test(v), 'Gebruik de vorm JJJJ-MM-DD');
 
 // Every field that can be edited. Used for both create and update.
 export const candidateFields = {
@@ -23,7 +23,7 @@ export const candidateFields = {
   phone: z.string().trim().min(6).max(30),
   email: z.string().trim().max(200).nullable().optional()
     .transform((v) => (v ? v.toLowerCase() : v === '' ? null : v))
-    .refine((v) => !v || z.string().email().safeParse(v).success, 'Invalid email address'),
+    .refine((v) => !v || z.string().email().safeParse(v).success, 'Ongeldig e-mailadres'),
   nationality: optText(100),
   current_country: optText(100),
   current_city: optText(100),
@@ -58,7 +58,7 @@ const LEVELS_SQL = "ARRAY['none','basic','good','fluent']";
 export async function preparePhone(raw) {
   const cc = await getSetting('general.default_country_code');
   const phone = normalizePhone(raw, cc);
-  if (!isValidPhone(phone)) throw badRequest('Phone number is not valid. Use the international format, for example +31612345678');
+  if (!isValidPhone(phone)) throw badRequest('Telefoonnummer is niet geldig. Gebruik de internationale vorm, bijvoorbeeld +31612345678');
   return phone;
 }
 
@@ -84,7 +84,7 @@ export async function findByPhone(phone) {
 export async function createCandidate(data, { userId, source = 'manual' } = {}) {
   const phone = await preparePhone(data.phone);
   const existing = await findByPhone(phone);
-  if (existing) throw conflict('A candidate with this phone number already exists', { existingId: existing.id });
+  if (existing) throw conflict('Er bestaat al een kandidaat met dit telefoonnummer', { existingId: existing.id });
   const row = { ...data, phone };
   if (row.date_of_birth && !row.age) row.age = ageFromDob(row.date_of_birth);
   const cols = COLUMNS.filter((k) => row[k] !== undefined);
@@ -104,13 +104,13 @@ export async function createCandidate(data, { userId, source = 'manual' } = {}) 
 
 export async function updateCandidate(id, data, { userId } = {}) {
   const current = await one('SELECT * FROM candidates WHERE id = $1', [id]);
-  if (!current) throw notFound('Candidate not found');
+  if (!current) throw notFound('Kandidaat niet gevonden');
   const row = { ...data };
   if (row.phone !== undefined) {
     row.phone = await preparePhone(row.phone);
     if (row.phone !== current.phone) {
       const other = await findByPhone(row.phone);
-      if (other) throw conflict('Another candidate already uses this phone number', { existingId: other.id });
+      if (other) throw conflict('Een andere kandidaat gebruikt dit telefoonnummer al', { existingId: other.id });
     }
   }
   if (row.date_of_birth && row.age === undefined) row.age = ageFromDob(row.date_of_birth);

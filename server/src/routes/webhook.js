@@ -17,15 +17,15 @@ router.get('/', async (req, res) => {
   const challenge = req.query['hub.challenge'];
   const { verifyToken } = await getWhatsAppConfig();
   if (!verifyToken) {
-    await logEvent('verify', false, 'Verify token is not configured in the CRM');
+    await logEvent('verify', false, 'Verify token is niet ingesteld in de CRM');
     return res.status(403).type('text/plain').send('Verify token not configured');
   }
   if (mode === 'subscribe' && typeof token === 'string' && safeEqual(token, verifyToken) && typeof challenge === 'string') {
-    await logEvent('verify', true, 'Webhook verified by Meta');
+    await logEvent('verify', true, 'Webhook geverifieerd door Meta');
     logger.info('Webhook verified by Meta');
     return res.status(200).type('text/plain').send(challenge);
   }
-  await logEvent('verify', false, mode !== 'subscribe' ? `Wrong hub.mode: ${mode}` : 'Verify token does not match');
+  await logEvent('verify', false, mode !== 'subscribe' ? `Verkeerde hub.mode: ${mode}` : 'Verify token klopt niet');
   return res.status(403).type('text/plain').send('Forbidden');
 });
 
@@ -35,18 +35,18 @@ router.post('/', express.raw({ type: '*/*', limit: '2mb' }), async (req, res) =>
   const signature = req.get('x-hub-signature-256');
   const raw = Buffer.isBuffer(req.body) ? req.body : Buffer.from('');
   if (!appSecret) {
-    await logEvent('signature', false, 'App Secret not configured – request rejected');
+    await logEvent('signature', false, 'App-geheim niet ingesteld – bericht geweigerd');
     return res.sendStatus(401);
   }
   if (!verifySignature(raw, signature, appSecret)) {
-    await logEvent('signature', false, signature ? 'Invalid signature – request rejected' : 'Missing X-Hub-Signature-256 header');
+    await logEvent('signature', false, signature ? 'Ongeldige handtekening – bericht geweigerd (klopt het App-geheim?)' : 'Handtekening ontbreekt – bericht geweigerd');
     return res.sendStatus(401);
   }
   let payload;
   try {
     payload = JSON.parse(raw.toString('utf8'));
   } catch {
-    await logEvent('parse', false, 'Body is not valid JSON');
+    await logEvent('parse', false, 'Bericht is geen geldige JSON');
     return res.sendStatus(400);
   }
   // Answer Meta quickly (it retries when we are slow), then process.

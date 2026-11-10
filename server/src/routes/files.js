@@ -11,9 +11,9 @@ const router = Router();
 // Open (inline) or download a CV. Requires login; never served from a public folder.
 router.get('/:id', async (req, res) => {
   const f = await one('SELECT * FROM candidate_files WHERE id = $1', [Number(req.params.id)]);
-  if (!f) throw notFound('File not found');
+  if (!f) throw notFound('Bestand niet gevonden');
   const p = filePath(f.stored_name);
-  if (!fs.existsSync(p)) throw notFound('The file is missing from storage');
+  if (!fs.existsSync(p)) throw notFound('Het bestand ontbreekt in de opslag');
   const disposition = req.query.download === '1' ? 'attachment' : 'inline';
   res.setHeader('Content-Type', f.mime_type);
   res.setHeader('Content-Disposition', `${disposition}; filename="${encodeURIComponent(f.original_name)}"`);

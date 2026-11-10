@@ -33,8 +33,8 @@ export function filePath(storedName) {
 
 export async function saveFile({ candidateId, buffer, originalName, mimeType, source = 'upload', userId = null, kind = 'cv' }) {
   const mime = String(mimeType || '').split(';')[0].trim();
-  if (!isAllowedType(mime)) throw badRequest('This file type is not allowed. Use PDF, Word, JPG or PNG.');
-  if (buffer.length > config.maxUploadMb * 1024 * 1024) throw badRequest(`File is larger than ${config.maxUploadMb} MB`);
+  if (!isAllowedType(mime)) throw badRequest('Dit bestandstype is niet toegestaan. Gebruik PDF, Word, JPG of PNG.');
+  if (buffer.length > config.maxUploadMb * 1024 * 1024) throw badRequest(`Bestand is groter dan ${config.maxUploadMb} MB`);
   const stored = `${crypto.randomBytes(16).toString('hex')}${ALLOWED_TYPES[mime]}`;
   await fs.mkdir(config.uploadDir, { recursive: true });
   await fs.writeFile(filePath(stored), buffer, { mode: 0o600 });

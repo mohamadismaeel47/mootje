@@ -51,7 +51,7 @@ router.get('/webhook-events', requireRole('admin'), async (_req, res) => {
 });
 
 router.post('/smtp/test', requireRole('admin'), validate(z.object({ to: z.string().email() })), async (req, res) => {
-  await sendMail({ to: req.body.to, subject: 'Recruitment CRM test email', text: 'Your SMTP settings work.' });
+  await sendMail({ to: req.body.to, subject: 'Test-e-mail van je Recruitment CRM', text: 'Je SMTP-instellingen werken.' });
   res.json({ ok: true });
 });
 

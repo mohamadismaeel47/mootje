@@ -1,7 +1,7 @@
 import { many } from '../db/pool.js';
 
 const LEVELS = ['none', 'basic', 'good', 'fluent'];
-const LEVEL_LABEL = { none: 'no English', basic: 'basic English', good: 'good English', fluent: 'fluent English' };
+const LEVEL_LABEL = { none: 'geen Engels', basic: 'een beetje Engels', good: 'goed Engels', fluent: 'vloeiend Engels' };
 
 function hasLanguage(candidate, lang) {
   const l = lang.trim().toLowerCase();
@@ -21,34 +21,34 @@ export function computeMatch(candidate, vacancy) {
       weight,
       ok: v === true,
       unknown: v === null || v === undefined,
-      detail: v === true ? `Has ${label.toLowerCase()}` : v === false ? `No ${label.toLowerCase()}` : `${label}: not known yet`,
+      detail: v === true ? `Heeft ${label.toLowerCase()}` : v === false ? `Geen ${label.toLowerCase()}` : `${label}: nog onbekend`,
     });
   };
 
-  if (vacancy.req_driving_licence) yesNo('driving_licence', 'Driving licence', 15);
-  if (vacancy.req_own_car) yesNo('own_car', 'Own car', 15);
-  if (vacancy.req_forklift) yesNo('forklift', 'Forklift certificate', 20);
-  if (vacancy.req_ept) yesNo('ept', 'EPT certificate', 20);
-  if (vacancy.req_reach_truck) yesNo('reach_truck', 'Reach truck certificate', 20);
+  if (vacancy.req_driving_licence) yesNo('driving_licence', 'Rijbewijs', 15);
+  if (vacancy.req_own_car) yesNo('own_car', 'Eigen auto', 15);
+  if (vacancy.req_forklift) yesNo('forklift', 'Heftruckcertificaat', 20);
+  if (vacancy.req_ept) yesNo('ept', 'EPT-certificaat', 20);
+  if (vacancy.req_reach_truck) yesNo('reach_truck', 'Reachtruckcertificaat', 20);
   if (vacancy.req_experience) {
     const v = candidate.has_experience;
     checks.push({
-      label: 'Experience', weight: 15, ok: v === true, unknown: v === null || v === undefined,
-      detail: v === true ? 'Has warehouse/production experience' : v === false ? 'No relevant experience' : 'Experience: not known yet',
+      label: 'Ervaring', weight: 15, ok: v === true, unknown: v === null || v === undefined,
+      detail: v === true ? 'Heeft ervaring in magazijn/productie' : v === false ? 'Geen relevante ervaring' : 'Ervaring: nog onbekend',
     });
   }
   if (vacancy.min_english_level && vacancy.min_english_level !== 'none') {
     const need = LEVELS.indexOf(vacancy.min_english_level);
     const have = candidate.english_level ? LEVELS.indexOf(candidate.english_level) : -1;
     checks.push({
-      label: 'English', weight: 15, ok: have >= need, unknown: have === -1,
-      detail: have === -1 ? 'English level: not known yet'
-        : `Speaks ${LEVEL_LABEL[candidate.english_level]} (needs ${LEVEL_LABEL[vacancy.min_english_level]})`,
+      label: 'Engels', weight: 15, ok: have >= need, unknown: have === -1,
+      detail: have === -1 ? 'Niveau Engels: nog onbekend'
+        : `Spreekt ${LEVEL_LABEL[candidate.english_level]} (nodig: ${LEVEL_LABEL[vacancy.min_english_level]})`,
     });
   }
   for (const lang of vacancy.required_languages || []) {
     const ok = !!hasLanguage(candidate, lang);
-    checks.push({ label: `Language: ${lang}`, weight: 10, ok, unknown: false, detail: ok ? `Speaks ${lang}` : `Does not speak ${lang} (or not recorded)` });
+    checks.push({ label: `Taal: ${lang}`, weight: 10, ok, unknown: false, detail: ok ? `Spreekt ${lang}` : `Spreekt geen ${lang} (of niet ingevuld)` });
   }
 
   // Availability always counts a little: is the candidate ready to work?
@@ -56,9 +56,9 @@ export function computeMatch(candidate, vacancy) {
   const today = new Date().toISOString().slice(0, 10);
   const availableNow = readyStatuses.includes(candidate.status) || (candidate.available_from && candidate.available_from <= today);
   checks.push({
-    label: 'Availability', weight: 10, ok: !!availableNow, unknown: !candidate.availability && !candidate.available_from,
-    detail: availableNow ? `Available${candidate.availability ? `: ${candidate.availability}` : ''}`
-      : candidate.availability ? `Availability: ${candidate.availability}` : 'Availability not known yet',
+    label: 'Beschikbaarheid', weight: 10, ok: !!availableNow, unknown: !candidate.availability && !candidate.available_from,
+    detail: availableNow ? `Beschikbaar${candidate.availability ? `: ${candidate.availability}` : ''}`
+      : candidate.availability ? `Beschikbaarheid: ${candidate.availability}` : 'Beschikbaarheid nog onbekend',
   });
 
   const total = checks.reduce((s, c) => s + c.weight, 0);
@@ -68,11 +68,11 @@ export function computeMatch(candidate, vacancy) {
   const info = [];
   if (vacancy.location && (candidate.current_city || candidate.current_country)) {
     const near = candidate.current_city && vacancy.location.toLowerCase().includes(candidate.current_city.toLowerCase());
-    info.push(near ? `Lives in ${candidate.current_city}, same place as the job` : `Lives in ${[candidate.current_city, candidate.current_country].filter(Boolean).join(', ')}; job is in ${vacancy.location}`);
+    info.push(near ? `Woont in ${candidate.current_city}, dezelfde plaats als het werk` : `Woont in ${[candidate.current_city, candidate.current_country].filter(Boolean).join(', ')}; het werk is in ${vacancy.location}`);
   }
-  if (candidate.desired_job) info.push(`Wants: ${candidate.desired_job}`);
+  if (candidate.desired_job) info.push(`Wil graag: ${candidate.desired_job}`);
 
-  const blockers = checks.filter((c) => !c.ok && !c.unknown && c.label !== 'Availability').map((c) => c.detail);
+  const blockers = checks.filter((c) => !c.ok && !c.unknown && c.label !== 'Beschikbaarheid').map((c) => c.detail);
   return { score, checks, info, blockers, eligible: blockers.length === 0 };
 }
 

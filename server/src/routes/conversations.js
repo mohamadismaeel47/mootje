@@ -57,16 +57,16 @@ router.post('/simulate', editor, validate(z.object({
 })), async (req, res) => {
   const phone = req.body.phone || `999${String(crypto.randomInt(0, 1e9)).padStart(9, '0')}`;
   const existing = await one('SELECT c.simulated FROM conversations c JOIN candidates cand ON cand.id = c.candidate_id WHERE cand.phone = $1', [phone]);
-  if (existing && !existing.simulated) throw badRequest('This number belongs to a real conversation');
+  if (existing && !existing.simulated) throw badRequest('Dit nummer hoort bij een echt gesprek');
   const result = await processIncomingMessage({
     from: phone, id: `sim.${crypto.randomUUID()}`, type: 'text', text: { body: req.body.text }, timestamp: String(Math.floor(Date.now() / 1000)),
-  }, { simulated: true, profileName: req.body.name || 'Test candidate' });
+  }, { simulated: true, profileName: req.body.name || 'Testkandidaat' });
   res.json({ phone, ...result });
 });
 
 router.post('/start/:candidateId', editor, async (req, res) => {
   const cand = await one('SELECT id FROM candidates WHERE id = $1', [Number(req.params.candidateId)]);
-  if (!cand) throw notFound('Candidate not found');
+  if (!cand) throw notFound('Kandidaat niet gevonden');
   const conv = await getOrCreateConversation(cand.id);
   await startConversation(conv.id, { userId: req.user.id });
   await audit(req.user.id, 'start_conversation', 'candidate', cand.id);
@@ -79,7 +79,7 @@ router.get('/:id', async (req, res) => {
     SELECT c.*, cand.full_name, cand.phone, cand.status AS candidate_status, cand.preferred_language, cand.consent_given,
            c.bot_state->>'profile_name' AS profile_name
     FROM conversations c JOIN candidates cand ON cand.id = c.candidate_id WHERE c.id = $1`, [id]);
-  if (!conv) throw notFound('Conversation not found');
+  if (!conv) throw notFound('Gesprek niet gevonden');
   const messages = await many(`
     SELECT m.id, m.direction, m.type, m.body, m.template_name, m.status, m.error, m.sender, m.created_at, m.file_id,
            u.name AS user_name, f.original_name AS file_name
@@ -149,7 +149,7 @@ router.post('/:id/status', editor, validate(z.object({ status: z.enum(['new', 'i
 router.delete('/:id', editor, async (req, res) => {
   const conv = await one('SELECT * FROM conversations WHERE id = $1', [Number(req.params.id)]);
   if (!conv) throw notFound();
-  if (!conv.simulated) throw badRequest('Only test conversations can be deleted here. Delete real candidates from their profile.');
+  if (!conv.simulated) throw badRequest('Hier kun je alleen testgesprekken verwijderen. Verwijder echte kandidaten via hun profiel.');
   await deleteCandidateFiles(conv.candidate_id);
   await query('DELETE FROM candidates WHERE id = $1', [conv.candidate_id]);
   res.json({ ok: true });

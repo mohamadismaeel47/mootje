@@ -71,7 +71,7 @@ test('candidates: create, duplicate phone, update, status history, search, filte
 test('candidates: export CSV/XLSX and import', async () => {
   const csv = await admin.get('/api/candidates/export?format=csv');
   assert.equal(csv.status, 200);
-  assert.match(csv.text, /Full name,Phone,Email/);
+  assert.match(csv.text, /Volledige naam,Telefoon,E-mail/);
   assert.match(csv.text, /Anna Kowalska/);
   const xlsx = await admin.get('/api/candidates/export?format=xlsx').buffer(true).parse((res, cb) => {
     const chunks = []; res.on('data', (d) => chunks.push(d)); res.on('end', () => cb(null, Buffer.concat(chunks)));
@@ -130,7 +130,7 @@ test('agencies, vacancies, matching and submissions (approval required)', async 
   const m = matches[0];
   // has forklift (20), licence (15), english (15), available (10); own car unknown (15) -> 60/75 = 80%
   assert.equal(m.score, 80);
-  assert.ok(m.checks.find((c) => c.label === 'Own car').unknown);
+  assert.ok(m.checks.find((c) => c.label === 'Eigen auto').unknown);
   assert.equal(m.eligible, true);
 
   const vm = (await admin.get(`/api/vacancies/${vac.body.id}/matches`)).body;

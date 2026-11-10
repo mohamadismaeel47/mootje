@@ -17,13 +17,13 @@ const loginLimiter = rateLimit({
   limit: config.isTest ? 1000 : 10,
   standardHeaders: true,
   legacyHeaders: false,
-  message: { error: 'Too many login attempts. Please wait 15 minutes.' },
+  message: { error: 'Te veel inlogpogingen. Wacht 15 minuten.' },
 });
 
 export const passwordSchema = z.string()
-  .min(10, 'Password must be at least 10 characters')
+  .min(10, 'Wachtwoord moet minstens 10 tekens hebben')
   .max(200)
-  .refine((p) => /[a-zA-Z]/.test(p) && /\d/.test(p), 'Password must contain letters and numbers');
+  .refine((p) => /[a-zA-Z]/.test(p) && /\d/.test(p), 'Wachtwoord moet letters en cijfers bevatten');
 
 router.get('/status', async (_req, res) => {
   const { count } = await one('SELECT count(*) FROM users');
@@ -38,10 +38,10 @@ router.post('/setup', loginLimiter, validate(z.object({
   setupToken: z.string().optional(),
 })), async (req, res) => {
   if (config.setupToken && !safeEqual(req.body.setupToken || '', config.setupToken)) {
-    throw new HttpError(403, 'Invalid setup token');
+    throw new HttpError(403, 'Ongeldige setup-token');
   }
   const { count } = await one('SELECT count(*) FROM users');
-  if (count > 0) throw new HttpError(409, 'Setup has already been completed');
+  if (count > 0) throw new HttpError(409, 'Het eerste account is al gemaakt');
   const hash = await bcrypt.hash(req.body.password, 12);
   const user = await one(
     `INSERT INTO users(name, email, password_hash, role) VALUES ($1,$2,$3,'admin') RETURNING id, name, email, role`,
@@ -59,7 +59,7 @@ router.post('/login', loginLimiter, validate(z.object({
   const user = await one('SELECT * FROM users WHERE email = $1', [req.body.email]);
   // Always run bcrypt to avoid revealing which emails exist through timing.
   const ok = await bcrypt.compare(req.body.password, user?.password_hash || '$2a$12$invalidinvalidinvalidinvalidinvalidinvalidinvalidinval');
-  if (!user || !ok || !user.active) throw new HttpError(401, 'Wrong email or password');
+  if (!user || !ok || !user.active) throw new HttpError(401, 'Verkeerd e-mailadres of wachtwoord');
   await query('UPDATE users SET last_login_at = now() WHERE id = $1', [user.id]);
   await audit(user.id, 'login', 'user', user.id);
   issueSession(res, user);
@@ -81,7 +81,7 @@ router.post('/change-password', requireAuth, validate(z.object({
 })), async (req, res) => {
   const user = await one('SELECT password_hash FROM users WHERE id = $1', [req.user.id]);
   if (!(await bcrypt.compare(req.body.currentPassword, user.password_hash))) {
-    throw new HttpError(400, 'Current password is wrong');
+    throw new HttpError(400, 'Huidig wachtwoord is onjuist');
   }
   await query('UPDATE users SET password_hash = $1 WHERE id = $2', [await bcrypt.hash(req.body.newPassword, 12), req.user.id]);
   await audit(req.user.id, 'change_password', 'user', req.user.id);

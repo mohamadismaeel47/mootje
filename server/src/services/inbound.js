@@ -35,7 +35,7 @@ async function findOrCreateCandidate(waId, { simulated = false, profileName } = 
     try {
       cand = await createCandidate({
         phone: `+${waId}`,
-        notes: simulated ? 'Test candidate created by the WhatsApp simulator.' : null,
+        notes: simulated ? 'Testkandidaat gemaakt met de WhatsApp-testchat.' : null,
       }, { source: 'whatsapp' });
       created = true;
     } catch (err) {
@@ -48,7 +48,7 @@ async function findOrCreateCandidate(waId, { simulated = false, profileName } = 
     await query(`UPDATE conversations SET bot_state = bot_state || jsonb_build_object('profile_name', $2::text) WHERE id = $1`, [conv.id, profileName.slice(0, 100)]);
   }
   if (created) {
-    await notify('new_candidate', `New WhatsApp contact${profileName ? `: ${profileName}` : ''}`, `+${waId} sent a first message.`, `/inbox/${conv.id}`);
+    await notify('new_candidate', `Nieuw WhatsApp-contact${profileName ? `: ${profileName}` : ''}`, `+${waId} stuurde een eerste bericht.`, `/inbox/${conv.id}`);
   }
   return { cand, conv: await one('SELECT * FROM conversations WHERE id = $1', [conv.id]) };
 }
@@ -70,8 +70,8 @@ export async function processIncomingMessage(msg, { profileName, simulated = fal
             originalName: media.filename || `whatsapp-${msg.type}-${Date.now()}${mime === 'application/pdf' ? '.pdf' : mime.startsWith('image/') ? '.jpg' : ''}`,
           });
           fileId = file.id;
-          await notify('cv_received', `File received from ${cand.full_name || `+${cand.phone}`}`, file.original_name, `/candidates/${cand.id}`);
-        } else fileError = `File type ${mime} is not allowed`;
+          await notify('cv_received', `Bestand ontvangen van ${cand.full_name || `+${cand.phone}`}`, file.original_name, `/candidates/${cand.id}`);
+        } else fileError = `Bestandstype ${mime} is niet toegestaan`;
       } catch (err) {
         fileError = err.message;
         logger.warn('Could not download WhatsApp media', { error: err.message });
@@ -79,7 +79,7 @@ export async function processIncomingMessage(msg, { profileName, simulated = fal
     }
     const text = messageText(msg);
     const body = msg.type === 'text' || msg.type === 'button' || msg.type === 'interactive' ? text
-      : `[${msg.type}]${text ? ` ${text}` : ''}${fileError ? ` (not saved: ${fileError})` : ''}`;
+      : `[${msg.type}]${text ? ` ${text}` : ''}${fileError ? ` (niet opgeslagen: ${fileError})` : ''}`;
     const at = msg.timestamp ? new Date(Number(msg.timestamp) * 1000) : new Date();
     const saved = await recordInbound(conv, { waMessageId: msg.id, type: msg.type, body, fileId, at });
     if (!saved) return { duplicate: true };
@@ -129,12 +129,12 @@ export async function processWebhookPayload(payload) {
       const value = change.value || {};
       const target = value.metadata?.phone_number_id;
       if (phoneNumberId && target && target !== phoneNumberId) {
-        await logEvent('ignored', true, `Message for another phone number id (${target})`);
+        await logEvent('ignored', true, `Bericht voor een ander Phone Number ID (${target}) – genegeerd`);
         continue;
       }
       if (change.field === 'smb_message_echoes') {
         for (const echo of value.message_echoes || []) {
-          try { await processEcho(echo); await logEvent('echo', true, 'Message sent from WhatsApp Business app'); } catch (err) { await logEvent('echo', false, err.message); }
+          try { await processEcho(echo); await logEvent('echo', true, 'Bericht verstuurd vanuit de WhatsApp Business-app'); } catch (err) { await logEvent('echo', false, err.message); }
         }
         continue;
       }
@@ -146,7 +146,7 @@ export async function processWebhookPayload(payload) {
         try {
           const profileName = value.contacts?.find((c) => c.wa_id === msg.from)?.profile?.name;
           const r = await processIncomingMessage(msg, { profileName });
-          await logEvent('message', true, `${msg.type} from ${maskPhone(msg.from)}${r.duplicate ? ' (duplicate, skipped)' : ''}${r.action ? ` → bot: ${r.action}` : r.reason ? ` → ${r.reason}` : ''}`);
+          await logEvent('message', true, `${msg.type} van ${maskPhone(msg.from)}${r.duplicate ? ' (dubbel, overgeslagen)' : ''}${r.action ? ` → bot: ${r.action}` : r.reason ? ` → ${r.reason}` : ''}`);
         } catch (err) {
           logger.error('Processing incoming message failed', { error: err.message });
           await logEvent('message', false, err.message);
@@ -155,7 +155,7 @@ export async function processWebhookPayload(payload) {
       for (const st of value.statuses || []) {
         try {
           const found = await applyStatus(st);
-          await logEvent('status', true, `${st.status}${found ? '' : ' (unknown message)'}${st.errors?.[0] ? `: ${st.errors[0].title} (${st.errors[0].code})` : ''}`);
+          await logEvent('status', true, `${st.status}${found ? '' : ' (onbekend bericht)'}${st.errors?.[0] ? `: ${st.errors[0].title} (${st.errors[0].code})` : ''}`);
         } catch (err) {
           await logEvent('status', false, err.message);
         }

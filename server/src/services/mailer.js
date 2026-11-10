@@ -9,7 +9,7 @@ export async function smtpConfigured() {
 export async function sendMail({ to, subject, text, attachments }) {
   const s = await getSettings('smtp.');
   if (!s['smtp.host'] || !s['smtp.from']) {
-    const err = new Error('Email (SMTP) is not configured. Add the SMTP settings first.');
+    const err = new Error('E-mail (SMTP) is niet ingesteld. Vul eerst de SMTP-instellingen in.');
     err.status = 400;
     throw err;
   }

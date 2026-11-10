@@ -24,22 +24,22 @@ export default function VacancyDetail() {
   const propose = async (m) => {
     try {
       await api.post('/submissions', { candidate_id: m.candidate.id, vacancy_id: v.id });
-      toast('Proposal created – approve it below to send', 'success');
+      toast('Voorstel gemaakt – keur het hieronder goed om te versturen', 'success');
       reload(true); matches.reload(true);
     } catch (err) { toast(err.message, 'error'); }
   };
 
   return (
     <>
-      <div className="row" style={{ marginBottom: 12 }}><Link to="/vacancies" className="btn ghost sm"><ArrowLeft size={15} /> Vacancies</Link></div>
+      <div className="row" style={{ marginBottom: 12 }}><Link to="/vacancies" className="btn ghost sm"><ArrowLeft size={15} /> Vacatures</Link></div>
       <div className="page-head">
         <div>
           <div className="row"><h1>{v.title}</h1><VacancyStatus status={v.status} /></div>
           <p>{[v.agency_name && <Link key="a" to={`/agencies/${v.agency_id}`}>{v.agency_name}</Link>, v.location, v.salary, v.working_hours].filter(Boolean).reduce((acc, x, i) => [...acc, i ? ' · ' : '', x], [])}</p>
         </div>
         <div className="actions">
-          {can('recruiter') && <button type="button" className="btn" onClick={() => setEdit(true)}><Pencil size={15} /> Edit</button>}
-          {can('admin') && <button type="button" className="btn danger" onClick={() => setDel(true)}><Trash2 size={15} /> Delete</button>}
+          {can('recruiter') && <button type="button" className="btn" onClick={() => setEdit(true)}><Pencil size={15} /> Bewerken</button>}
+          {can('admin') && <button type="button" className="btn danger" onClick={() => setDel(true)}><Trash2 size={15} /> Verwijderen</button>}
         </div>
       </div>
 
@@ -47,12 +47,12 @@ export default function VacancyDetail() {
         <div className="stack" style={{ gap: 16 }}>
           <div className="card">
             <div className="card-head">
-              <div><h3>Matching candidates</h3><div className="small muted">Ranked by match percentage. Placed, rejected and not-interested candidates are hidden.</div></div>
-              <select value={minScore} onChange={(e) => setMinScore(Number(e.target.value))} style={{ width: 'auto' }} aria-label="Minimum score">
+              <div><h3>Passende kandidaten</h3><div className="small muted">Gesorteerd op matchpercentage. Geplaatste, afgewezen en niet-geïnteresseerde kandidaten worden niet getoond.</div></div>
+              <select value={minScore} onChange={(e) => setMinScore(Number(e.target.value))} style={{ width: 'auto' }} aria-label="Minimale score">
                 {[0, 25, 50, 75, 100].map((s) => <option key={s} value={s}>Score ≥ {s}%</option>)}
               </select>
             </div>
-            {matches.loading && !matches.data ? <Spinner /> : matches.data?.length === 0 ? <Empty icon={Target} title="No matching candidates">Lower the minimum score, or collect more candidate information.</Empty> : matches.data?.map((m) => (
+            {matches.loading && !matches.data ? <Spinner /> : matches.data?.length === 0 ? <Empty icon={Target} title="Geen passende kandidaten">Verlaag de minimale score, of verzamel meer informatie van kandidaten.</Empty> : matches.data?.map((m) => (
               <div key={m.candidate.id} className="match">
                 <div className="row wrap">
                   <span className={`score ${scoreColor(m.score)}`}>{m.score}%</span>
@@ -62,7 +62,7 @@ export default function VacancyDetail() {
                   </div>
                   <StatusBadge status={m.candidate.status} />
                   {m.submission_status ? <SubmissionBadge status={m.submission_status} /> : can('recruiter') && v.agency_id && (
-                    <button type="button" className="btn sm" onClick={() => propose(m)}><Send size={14} /> Propose</button>
+                    <button type="button" className="btn sm" onClick={() => propose(m)}><Send size={14} /> Voorstellen</button>
                   )}
                 </div>
                 <MatchChecks m={m} />
@@ -71,17 +71,17 @@ export default function VacancyDetail() {
           </div>
 
           <div className="card">
-            <div className="card-head"><h3>Proposed &amp; sent candidates</h3></div>
-            {v.submissions.length === 0 ? <Empty icon={Send} title="Nobody proposed yet" /> : (
+            <div className="card-head"><h3>Voorgestelde &amp; verstuurde kandidaten</h3></div>
+            {v.submissions.length === 0 ? <Empty icon={Send} title="Nog niemand voorgesteld" /> : (
               <div className="table-wrap"><table className="table">
-                <thead><tr><th>Candidate</th><th>Match</th><th>Status</th><th>Sent</th><th /></tr></thead>
+                <thead><tr><th>Kandidaat</th><th>Match</th><th>Status</th><th>Verstuurd</th><th /></tr></thead>
                 <tbody>{v.submissions.map((s) => (
                   <tr key={s.id}>
                     <td><Link to={`/candidates/${s.candidate_id}`}>{s.full_name || fmtPhone(s.phone)}</Link></td>
                     <td>{s.match_score != null ? `${s.match_score}%` : '—'}</td>
                     <td><SubmissionBadge status={s.status} /></td>
                     <td className="sub">{fmtDateTime(s.sent_at)}</td>
-                    <td style={{ textAlign: 'right' }}>{s.status === 'proposed' && can('recruiter') && <button type="button" className="btn sm primary" onClick={() => setSendItem(s)}><Check size={14} /> Approve &amp; send</button>}</td>
+                    <td style={{ textAlign: 'right' }}>{s.status === 'proposed' && can('recruiter') && <button type="button" className="btn sm primary" onClick={() => setSendItem(s)}><Check size={14} /> Goedkeuren &amp; versturen</button>}</td>
                   </tr>
                 ))}</tbody>
               </table></div>
@@ -90,19 +90,19 @@ export default function VacancyDetail() {
         </div>
 
         <div className="card">
-          <div className="card-head"><h3>Details</h3></div>
+          <div className="card-head"><h3>Gegevens</h3></div>
           <div className="card-body stack">
-            <div><div className="small muted" style={{ marginBottom: 6 }}>Requirements</div><div className="tags">{requirementTags(v).length ? requirementTags(v).map((t) => <span key={t} className="tag">{t}</span>) : <span className="muted small">No special requirements</span>}</div></div>
-            {v.required_experience && <div><div className="small muted">Experience</div>{v.required_experience}</div>}
-            <div><div className="small muted">Positions</div>{v.positions}</div>
-            {v.description && <div><div className="small muted">Description</div><div style={{ whiteSpace: 'pre-wrap' }}>{v.description}</div></div>}
+            <div><div className="small muted" style={{ marginBottom: 6 }}>Eisen</div><div className="tags">{requirementTags(v).length ? requirementTags(v).map((t) => <span key={t} className="tag">{t}</span>) : <span className="muted small">Geen speciale eisen</span>}</div></div>
+            {v.required_experience && <div><div className="small muted">Ervaring</div>{v.required_experience}</div>}
+            <div><div className="small muted">Plaatsen</div>{v.positions}</div>
+            {v.description && <div><div className="small muted">Omschrijving</div><div style={{ whiteSpace: 'pre-wrap' }}>{v.description}</div></div>}
           </div>
         </div>
       </div>
 
       {edit && <VacancyForm vacancy={v} onClose={() => setEdit(false)} onSaved={() => { reload(true); matches.reload(true); }} />}
       {sendItem && <SendWrapper submission={{ ...sendItem, agency_name: v.agency_name, vacancy_title: v.title }} onClose={() => setSendItem(null)} onDone={() => reload(true)} />}
-      {del && <Confirm title="Delete vacancy?" danger confirmLabel="Delete" onClose={() => setDel(false)} onConfirm={async () => { await api.del(`/vacancies/${v.id}`); navigate('/vacancies'); }}><p>Submissions stay saved but are no longer linked to this vacancy.</p></Confirm>}
+      {del && <Confirm title="Vacature verwijderen?" danger confirmLabel="Verwijderen" onClose={() => setDel(false)} onConfirm={async () => { await api.del(`/vacancies/${v.id}`); navigate('/vacancies'); }}><p>Voorstellen blijven bewaard, maar zijn niet meer gekoppeld aan deze vacature.</p></Confirm>}
     </>
   );
 }

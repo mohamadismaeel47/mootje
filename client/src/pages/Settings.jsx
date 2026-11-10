@@ -8,8 +8,8 @@ import { useAsync, Spinner, ErrorBox, Alert, Field, Modal, useToast } from '../c
 import { useAuth } from '../App.jsx';
 
 const TABS = [
-  ['whatsapp', 'WhatsApp API', MessageCircle, 'admin'], ['bot', 'Assistant', Bot, 'admin'], ['email', 'Email', Mail, 'admin'],
-  ['users', 'Users', Users, 'admin'], ['privacy', 'Privacy & logs', ShieldCheck, 'admin'], ['account', 'My account', KeyRound, 'viewer'],
+  ['whatsapp', 'WhatsApp API', MessageCircle, 'admin'], ['bot', 'Assistent', Bot, 'admin'], ['email', 'E-mail', Mail, 'admin'],
+  ['users', 'Gebruikers', Users, 'admin'], ['privacy', 'Privacy & logboek', ShieldCheck, 'admin'], ['account', 'Mijn account', KeyRound, 'viewer'],
 ];
 
 export default function Settings() {
@@ -21,7 +21,7 @@ export default function Settings() {
   const settings = useAsync(() => (can('admin') ? api.get('/settings') : Promise.resolve(null)), []);
   return (
     <>
-      <div className="page-head"><div><h1>Settings</h1><p>Configure WhatsApp, the assistant, email and user access.</p></div></div>
+      <div className="page-head"><div><h1>Instellingen</h1><p>Stel WhatsApp, de assistent, e-mail en gebruikers in.</p></div></div>
       <div className="card" style={{ marginBottom: 16 }}>
         <div className="tabs">
           {tabs.map(([k, l, I]) => <button type="button" key={k} className={active === k ? 'on' : ''} onClick={() => navigate(`/settings/${k}`)}><I size={15} /> {l}</button>)}
@@ -56,7 +56,7 @@ function SettingsForm({ s, keys, reload, hints = {}, types = {}, options = {} })
     setBusy(true);
     try {
       await api.put('/settings', { values });
-      toast('Settings saved', 'success');
+      toast('Instellingen opgeslagen', 'success');
       reload();
     } catch (err) { toast(err.message, 'error'); } finally { setBusy(false); }
   };
@@ -67,20 +67,20 @@ function SettingsForm({ s, keys, reload, hints = {}, types = {}, options = {} })
           const def = s.settings[k];
           const fromEnv = def.source === 'env';
           return (
-            <Field key={k} label={def.label} hint={fromEnv ? 'Set in the server .env file (this value is used and cannot be changed here).' : def.secret && def.isSet ? `Saved (${def.value}). Leave empty to keep it.` : hints[k]}>
+            <Field key={k} label={def.label} hint={fromEnv ? 'Ingesteld in Railway (variabelen). Deze waarde wordt gebruikt en kan hier niet worden aangepast.' : def.secret && def.isSet ? `Opgeslagen (${def.value}). Laat leeg om te bewaren.` : hints[k]}>
               {options[k] ? (
                 <select value={values[k] ?? ''} disabled={fromEnv} onChange={(e) => setValues({ ...values, [k]: e.target.value })}>
                   {options[k].map(([v, l]) => <option key={v} value={v}>{l}</option>)}
                 </select>
               ) : (
                 <input type={def.secret ? 'password' : types[k] || 'text'} autoComplete="off" disabled={fromEnv} value={values[k] ?? ''}
-                  placeholder={def.secret && def.isSet ? '•••••••• (saved)' : ''} onChange={(e) => setValues({ ...values, [k]: e.target.value })} />
+                  placeholder={def.secret && def.isSet ? '•••••••• (opgeslagen)' : ''} onChange={(e) => setValues({ ...values, [k]: e.target.value })} />
               )}
             </Field>
           );
         })}
       </div>
-      <div><button type="button" className="btn primary" onClick={save} disabled={busy}><Save size={15} /> Save</button></div>
+      <div><button type="button" className="btn primary" onClick={save} disabled={busy}><Save size={15} /> Opslaan</button></div>
     </div>
   );
 }
@@ -90,7 +90,7 @@ function CopyField({ value }) {
   return (
     <div className="copy-box">
       <input type="text" readOnly value={value} onFocus={(e) => e.target.select()} />
-      <button type="button" className="btn icon" aria-label="Copy" onClick={() => { navigator.clipboard?.writeText(value); toast('Copied', 'success'); }}><Copy size={15} /></button>
+      <button type="button" className="btn icon" aria-label="Kopiëren" onClick={() => { navigator.clipboard?.writeText(value); toast('Gekopieerd', 'success'); }}><Copy size={15} /></button>
     </div>
   );
 }
@@ -106,7 +106,7 @@ function WhatsAppTab({ s, reload }) {
     try { setTest(await api.post('/settings/whatsapp/test')); } catch (err) { toast(err.message, 'error'); } finally { setBusy(false); }
   };
   const subscribe = async () => {
-    try { await api.post('/settings/whatsapp/subscribe'); toast('App subscribed to your WhatsApp Business Account', 'success'); runTest(); } catch (err) { toast(err.message, 'error'); }
+    try { await api.post('/settings/whatsapp/subscribe'); toast('App gekoppeld aan je WhatsApp Business-account', 'success'); runTest(); } catch (err) { toast(err.message, 'error'); }
   };
   const verifySet = s.settings['whatsapp.verify_token'].isSet;
   return (
@@ -116,28 +116,28 @@ function WhatsAppTab({ s, reload }) {
           <div className="card-head"><h3>Meta WhatsApp Business Cloud API</h3></div>
           <div className="card-body stack">
             {s.whatsappMissing.length > 0
-              ? <Alert type="warn"><b>WhatsApp is not connected yet.</b> Missing: {s.whatsappMissing.join(', ')}. Until this is complete, messages cannot be sent or received (use “Test chat” in the inbox to try the assistant).</Alert>
-              : <Alert type="info">All values are filled in. Use <b>Test connection</b> to check them with Meta.</Alert>}
+              ? <Alert type="warn"><b>WhatsApp is nog niet gekoppeld.</b> Ontbreekt: {s.whatsappMissing.join(', ')}. Zolang dit niet compleet is, kunnen er geen berichten worden verstuurd of ontvangen (gebruik “Testchat” in de inbox om de assistent te proberen).</Alert>
+              : <Alert type="info">Alles is ingevuld. Gebruik <b>Verbinding testen</b> om het bij Meta te controleren.</Alert>}
             <SettingsForm s={s} keys={WA_KEYS} reload={reload} hints={{
-              'whatsapp.access_token': 'Use a permanent System User token (Business Settings → System users), not the 24-hour test token.',
-              'whatsapp.phone_number_id': 'WhatsApp Manager / App dashboard → API Setup → Phone number ID (not the phone number itself).',
-              'whatsapp.business_account_id': 'The WhatsApp Business Account ID (WABA ID).',
-              'whatsapp.app_secret': 'Meta app → App settings → Basic → App secret. Used to check webhook signatures.',
-              'whatsapp.verify_token': 'Any random text you choose. Enter exactly the same text in the Meta webhook settings.',
-              'whatsapp.graph_version': 'Graph API version, e.g. v23.0',
+              'whatsapp.access_token': 'Gebruik een permanente token van een systeemgebruiker (Bedrijfsinstellingen → Systeemgebruikers), niet de testtoken van 24 uur.',
+              'whatsapp.phone_number_id': 'Meta-app → WhatsApp → API-instellingen → Phone number ID (niet het telefoonnummer zelf).',
+              'whatsapp.business_account_id': 'Het ID van je WhatsApp Business-account (WABA-ID).',
+              'whatsapp.app_secret': 'Meta-app → App-instellingen → Algemeen → App-geheim. Hiermee worden webhooks gecontroleerd.',
+              'whatsapp.verify_token': 'Een willekeurige tekst die je zelf kiest. Vul precies dezelfde tekst in bij de webhook in Meta.',
+              'whatsapp.graph_version': 'Versie van de Graph API, bijv. v23.0',
             }} />
           </div>
         </div>
         <div className="card">
           <div className="card-head">
-            <h3>Connection test</h3>
+            <h3>Verbindingstest</h3>
             <div className="actions">
-              <button type="button" className="btn sm" onClick={subscribe}><PlugZap size={14} /> Subscribe app</button>
-              <button type="button" className="btn sm primary" disabled={busy} onClick={runTest}><Activity size={14} /> {busy ? 'Testing…' : 'Test connection'}</button>
+              <button type="button" className="btn sm" onClick={subscribe}><PlugZap size={14} /> App koppelen</button>
+              <button type="button" className="btn sm primary" disabled={busy} onClick={runTest}><Activity size={14} /> {busy ? 'Bezig met testen…' : 'Verbinding testen'}</button>
             </div>
           </div>
           <div className="card-body">
-            {!test && <p className="muted small">Checks your token, phone number, registration and webhook subscription directly with Meta. Nothing is faked: if a check fails, the reason from Meta is shown.</p>}
+            {!test && <p className="muted small">Controleert je token, telefoonnummer, registratie en webhook rechtstreeks bij Meta. Er wordt niets nagedaan: als een controle mislukt, zie je de reden van Meta.</p>}
             {test && (
               <ul className="check-list">
                 {test.steps.map((st) => (
@@ -153,12 +153,12 @@ function WhatsAppTab({ s, reload }) {
       </div>
       <div className="stack" style={{ gap: 16 }}>
         <div className="card">
-          <div className="card-head"><h3>Webhook for Meta</h3></div>
+          <div className="card-head"><h3>Webhook voor Meta</h3></div>
           <div className="card-body stack">
             <Field label="Callback URL"><CopyField value={s.webhookUrl} /></Field>
-            {!s.publicUrlConfigured && <Alert type="warn">Set <code>PUBLIC_URL</code> in the server .env to your public <b>https</b> address. Meta cannot reach localhost.</Alert>}
-            <Field label="Verify token" hint={verifySet ? 'Use the verify token you saved on the left.' : 'Save a verify token first.'}><input type="text" readOnly value={verifySet ? s.settings['whatsapp.verify_token'].value : '—'} /></Field>
-            <div className="small muted">In the Meta app: <b>WhatsApp → Configuration → Webhook → Edit</b>. Paste the URL and verify token, click <b>Verify and save</b>, then subscribe to the <b>messages</b> field (and <b>smb_message_echoes</b> if you use Coexistence).</div>
+            {!s.publicUrlConfigured && <Alert type="warn">Stel <code>PUBLIC_URL</code> in (in Railway bij Variables) op je openbare <b>https</b>-adres. Meta kan localhost niet bereiken.</Alert>}
+            <Field label="Verify token" hint={verifySet ? 'Gebruik de verify token die links is opgeslagen.' : 'Sla eerst een verify token op.'}><input type="text" readOnly value={verifySet ? s.settings['whatsapp.verify_token'].value : '—'} /></Field>
+            <div className="small muted">In de Meta-app: <b>WhatsApp → Configuratie → Webhook → Bewerken</b>. Plak de URL en de verify token, klik op <b>Verify and save</b> en zet daarna het veld <b>messages</b> aan (en <b>smb_message_echoes</b> als je Coexistence gebruikt).</div>
           </div>
         </div>
         <WebhookLog />
@@ -171,9 +171,9 @@ function WebhookLog() {
   const { data, reload } = useAsync(() => api.get('/settings/webhook-events'), [], { interval: 10000 });
   return (
     <div className="card">
-      <div className="card-head"><h3>Webhook activity</h3><button type="button" className="btn sm ghost" onClick={() => reload(true)}>Refresh</button></div>
+      <div className="card-head"><h3>Webhook-activiteit</h3><button type="button" className="btn sm ghost" onClick={() => reload(true)}>Vernieuwen</button></div>
       <div className="card-body" style={{ maxHeight: 380, overflowY: 'auto' }}>
-        {!data?.length && <p className="small muted">No webhook calls received yet. After you verify the webhook in Meta, every call appears here (without message contents).</p>}
+        {!data?.length && <p className="small muted">Nog geen webhook-berichten ontvangen. Nadat je de webhook in Meta hebt geverifieerd, zie je hier elk bericht (zonder de inhoud).</p>}
         <ul className="check-list small">
           {data?.map((e) => (
             <li key={e.id}>
@@ -191,31 +191,31 @@ function BotTab({ s, reload }) {
   return (
     <div className="split">
       <div className="card">
-        <div className="card-head"><h3>WhatsApp assistant</h3></div>
+        <div className="card-head"><h3>WhatsApp-assistent</h3></div>
         <div className="card-body">
           <SettingsForm s={s} reload={reload}
             keys={['bot.enabled', 'bot.question_mode', 'bot.recruiter_name', 'bot.ask_consent', 'bot.offer_cv', 'general.default_country_code', 'bot.intro_template_name', 'bot.intro_template_language', 'bot.followup_template_name', 'bot.followup_template_language']}
-            options={{ 'bot.enabled': [['true', 'On – reply automatically'], ['false', 'Off – all conversations manual']], 'bot.question_mode': [['all', 'All questions in one message'], ['one', 'One question at a time']], 'bot.ask_consent': [['true', 'Yes (recommended)'], ['false', 'No']], 'bot.offer_cv': [['true', 'Yes'], ['false', 'No']] }}
+            options={{ 'bot.enabled': [['true', 'Aan – automatisch antwoorden'], ['false', 'Uit – alle gesprekken handmatig']], 'bot.question_mode': [['all', 'Alle vragen in één bericht'], ['one', 'Eén vraag tegelijk']], 'bot.ask_consent': [['true', 'Ja (aanbevolen)'], ['false', 'Nee']], 'bot.offer_cv': [['true', 'Ja'], ['false', 'Nee']] }}
             hints={{
-              'bot.recruiter_name': 'Used in “Hi! My name is …”',
-              'general.default_country_code': 'For numbers like 06…, e.g. 31 for the Netherlands',
-              'bot.intro_template_name': 'Approved template used when YOU start the conversation (required by WhatsApp).',
-              'bot.intro_template_language': 'Language code of that template, e.g. en or nl',
-              'bot.followup_template_name': 'Approved template for follow-ups after 24 hours.',
+              'bot.recruiter_name': 'Wordt gebruikt in “Hi! My name is …”',
+              'general.default_country_code': 'Voor nummers zoals 06…, bijv. 31 voor Nederland',
+              'bot.intro_template_name': 'Goedgekeurde template voor als JIJ het gesprek start (verplicht van WhatsApp).',
+              'bot.intro_template_language': 'Taalcode van die template, bijv. en of nl',
+              'bot.followup_template_name': 'Goedgekeurde template voor herinneringen na 24 uur.',
             }} />
         </div>
       </div>
       <div className="card">
-        <div className="card-head"><h3>How the assistant works</h3></div>
+        <div className="card-head"><h3>Zo werkt de assistent</h3></div>
         <div className="card-body stack small">
-          <p>1. A candidate writes to your WhatsApp number (or you start the chat with a template).</p>
-          <p>2. The assistant asks: <i>“Is it correct that you are looking for a job?”</i></p>
-          <p>3. After YES (and privacy consent) it sends the 12 questions — <b>all in one numbered message</b> or <b>one at a time</b> (your choice). Every answer is saved immediately. Missing or unclear answers are asked again one by one.</p>
-          <p>4. Questions that are already answered are skipped. If the candidate does not understand, it explains the question. Unclear answers are asked again (3 tries, then you get a notification).</p>
-          <p>5. English and Dutch are supported; the language is detected automatically.</p>
-          <p>6. You get a notification when the registration is complete. Switch a chat to <b>Manual</b> at any time to take over.</p>
-          <p className="muted">Candidates can send STOP to stop automatic messages and DELETE to ask for data deletion.</p>
-          <Alert type="info">Template example for the first message (category <b>Utility</b> or <b>Marketing</b>): “Hi! My name is Mohamad. Is it correct that you are looking for a job?”</Alert>
+          <p>1. Een kandidaat stuurt een bericht naar je WhatsApp-nummer (of jij start het gesprek met een template).</p>
+          <p>2. De assistent vraagt: <i>“Is it correct that you are looking for a job?”</i> (of in het Nederlands)</p>
+          <p>3. Na JA (en privacytoestemming) stuurt hij de 12 vragen — <b>allemaal in één genummerd bericht</b> of <b>één voor één</b> (jij kiest). Elk antwoord wordt meteen opgeslagen. Ontbrekende of onduidelijke antwoorden worden daarna één voor één opnieuw gevraagd.</p>
+          <p>4. Vragen die al beantwoord zijn, worden overgeslagen. Begrijpt de kandidaat een vraag niet, dan legt de assistent die uit. Onduidelijke antwoorden worden opnieuw gevraagd (3 keer, daarna krijg jij een melding).</p>
+          <p>5. Engels en Nederlands worden ondersteund; de taal wordt automatisch herkend.</p>
+          <p>6. Je krijgt een melding als de inschrijving compleet is. Zet een chat op <b>Handmatig</b> om het gesprek over te nemen.</p>
+          <p className="muted">Kandidaten kunnen STOP sturen om automatische berichten te stoppen, en DELETE / VERWIJDER om hun gegevens te laten verwijderen.</p>
+          <Alert type="info">Voorbeeld van een template voor het eerste bericht (categorie <b>Utility</b> of <b>Marketing</b>): “Hi! My name is Mohamad. Is it correct that you are looking for a job?”</Alert>
         </div>
       </div>
     </div>
@@ -228,18 +228,18 @@ function EmailTab({ s, reload }) {
   return (
     <div className="split">
       <div className="card">
-        <div className="card-head"><h3>Email (SMTP)</h3></div>
+        <div className="card-head"><h3>E-mail (SMTP)</h3></div>
         <div className="card-body stack">
-          <p className="small muted">Optional. Needed to email candidate profiles and CVs to agencies after your approval. Use the SMTP details of your email provider (e.g. Microsoft 365, Google Workspace, Brevo).</p>
-          <SettingsForm s={s} reload={reload} keys={['smtp.host', 'smtp.port', 'smtp.user', 'smtp.pass', 'smtp.from']} hints={{ 'smtp.from': 'e.g. Recruitment <jobs@yourcompany.nl>' }} />
+          <p className="small muted">Optioneel. Nodig om profielen en cv's na jouw goedkeuring naar bureaus te mailen. Gebruik de SMTP-gegevens van je e-mailprovider (bijv. Microsoft 365, Google Workspace, Brevo).</p>
+          <SettingsForm s={s} reload={reload} keys={['smtp.host', 'smtp.port', 'smtp.user', 'smtp.pass', 'smtp.from']} hints={{ 'smtp.from': 'bijv. Recruitmen <jobs@jouwbedrijf.nl>' }} />
         </div>
       </div>
       <div className="card">
-        <div className="card-head"><h3>Send test email</h3></div>
+        <div className="card-head"><h3>Test-e-mail sturen</h3></div>
         <div className="card-body stack">
-          {!s.smtpConfigured && <Alert type="warn">SMTP is not configured yet.</Alert>}
-          <Field label="Send to"><input type="email" value={to} onChange={(e) => setTo(e.target.value)} /></Field>
-          <button type="button" className="btn" style={{ alignSelf: 'flex-start' }} onClick={async () => { try { await api.post('/settings/smtp/test', { to }); toast('Test email sent', 'success'); } catch (err) { toast(err.message, 'error'); } }}>Send test</button>
+          {!s.smtpConfigured && <Alert type="warn">SMTP is nog niet ingesteld.</Alert>}
+          <Field label="Versturen naar"><input type="email" value={to} onChange={(e) => setTo(e.target.value)} /></Field>
+          <button type="button" className="btn" style={{ alignSelf: 'flex-start' }} onClick={async () => { try { await api.post('/settings/smtp/test', { to }); toast('Test-e-mail verstuurd', 'success'); } catch (err) { toast(err.message, 'error'); } }}>Test versturen</button>
         </div>
       </div>
     </div>
@@ -255,18 +255,18 @@ function UsersTab() {
   return (
     <div className="card">
       <div className="card-head">
-        <div><h3>Users</h3><div className="small muted">Admin: everything. Recruiter: candidates, chats, vacancies (no settings, no deleting). Viewer: read only.</div></div>
-        <button type="button" className="btn primary sm" onClick={() => setAdd(true)}><UserPlus size={14} /> Add user</button>
+        <div><h3>Gebruikers</h3><div className="small muted">Beheerder: alles. Recruiter: kandidaten, chats, vacatures (geen instellingen, niets verwijderen). Alleen lezen: alleen bekijken.</div></div>
+        <button type="button" className="btn primary sm" onClick={() => setAdd(true)}><UserPlus size={14} /> Gebruiker toevoegen</button>
       </div>
       <ErrorBox error={error} />
       <div className="table-wrap"><table className="table">
-        <thead><tr><th>Name</th><th>Role</th><th>Last login</th><th>Active</th></tr></thead>
+        <thead><tr><th>Naam</th><th>Rol</th><th>Laatst ingelogd</th><th>Actief</th></tr></thead>
         <tbody>{data?.map((u) => (
           <tr key={u.id}>
             <td><b>{u.name}</b><div className="sub">{u.email}</div></td>
-            <td><select value={u.role} disabled={u.id === user.id} onChange={(e) => update(u.id, { role: e.target.value })} style={{ width: 140 }}><option value="admin">Admin</option><option value="recruiter">Recruiter</option><option value="viewer">Viewer</option></select></td>
+            <td><select value={u.role} disabled={u.id === user.id} onChange={(e) => update(u.id, { role: e.target.value })} style={{ width: 140 }}><option value="admin">Beheerder</option><option value="recruiter">Recruiter</option><option value="viewer">Alleen lezen</option></select></td>
             <td className="sub">{fmtDateTime(u.last_login_at)}</td>
-            <td><label className="checkbox"><input type="checkbox" checked={u.active} disabled={u.id === user.id} onChange={(e) => update(u.id, { active: e.target.checked })} /> {u.active ? 'Active' : 'Disabled'}</label></td>
+            <td><label className="checkbox"><input type="checkbox" checked={u.active} disabled={u.id === user.id} onChange={(e) => update(u.id, { active: e.target.checked })} /> {u.active ? 'Actief' : 'Uitgeschakeld'}</label></td>
           </tr>
         ))}</tbody>
       </table></div>
@@ -281,13 +281,13 @@ function AddUser({ onClose, onDone }) {
   const set = (k) => (e) => setF({ ...f, [k]: e.target.value });
   const save = async () => { try { await api.post('/users', f); onDone(); onClose(); } catch (err) { setError(err); } };
   return (
-    <Modal title="Add user" onClose={onClose} footer={<><button type="button" className="btn" onClick={onClose}>Cancel</button><button type="button" className="btn primary" onClick={save}>Create user</button></>}>
+    <Modal title="Gebruiker toevoegen" onClose={onClose} footer={<><button type="button" className="btn" onClick={onClose}>Annuleren</button><button type="button" className="btn primary" onClick={save}>Gebruiker maken</button></>}>
       <div className="stack">
         <ErrorBox error={error} />
-        <Field label="Name"><input type="text" value={f.name} onChange={set('name')} /></Field>
-        <Field label="Email"><input type="email" value={f.email} onChange={set('email')} /></Field>
-        <Field label="Temporary password" hint="At least 10 characters with letters and numbers. Ask the user to change it."><input type="password" value={f.password} onChange={set('password')} autoComplete="new-password" /></Field>
-        <Field label="Role"><select value={f.role} onChange={set('role')}><option value="recruiter">Recruiter</option><option value="viewer">Viewer</option><option value="admin">Admin</option></select></Field>
+        <Field label="Naam"><input type="text" value={f.name} onChange={set('name')} /></Field>
+        <Field label="E-mail"><input type="email" value={f.email} onChange={set('email')} /></Field>
+        <Field label="Tijdelijk wachtwoord" hint="Minstens 10 tekens met letters en cijfers. Vraag de gebruiker om het te veranderen."><input type="password" value={f.password} onChange={set('password')} autoComplete="new-password" /></Field>
+        <Field label="Rol"><select value={f.role} onChange={set('role')}><option value="recruiter">Recruiter</option><option value="viewer">Alleen lezen</option><option value="admin">Beheerder</option></select></Field>
       </div>
     </Modal>
   );
@@ -298,22 +298,23 @@ function PrivacyTab({ s, reload }) {
   return (
     <div className="split">
       <div className="card">
-        <div className="card-head"><h3>Audit log</h3><span className="small muted">Who did what (last 200 actions)</span></div>
+        <div className="card-head"><h3>Logboek</h3><span className="small muted">Wie deed wat (laatste 200 acties)</span></div>
         <div className="table-wrap" style={{ maxHeight: 560, overflowY: 'auto' }}><table className="table">
           <tbody>{data?.map((a) => (
-            <tr key={a.id}><td className="sub" style={{ whiteSpace: 'nowrap' }}>{fmtDateTime(a.created_at)}</td><td>{a.user_name || 'System'}</td><td><b>{a.action.replaceAll('_', ' ')}</b> {a.entity}{a.entity_id ? ` #${a.entity_id}` : ''}</td><td className="sub">{a.detail}</td></tr>
+            <tr key={a.id}><td className="sub" style={{ whiteSpace: 'nowrap' }}>{fmtDateTime(a.created_at)}</td><td>{a.user_name || 'Systeem'}</td><td><b>{a.action.replaceAll('_', ' ')}</b> {a.entity}{a.entity_id ? ` #${a.entity_id}` : ''}</td><td className="sub">{a.detail}</td></tr>
           ))}</tbody>
         </table></div>
       </div>
       <div className="card">
-        <div className="card-head"><h3>Privacy (GDPR / AVG)</h3></div>
+        <div className="card-head"><h3>Privacy (AVG)</h3></div>
         <div className="card-body stack small">
-          <p>• The assistant asks for consent before collecting answers (can be switched in Assistant settings).</p>
-          <p>• Candidates can send <b>DELETE</b> / <b>VERWIJDER</b>. You get a notification and delete the profile with one click.</p>
-          <p>• Admins can export all data of one candidate (right of access) and delete everything (right to erasure).</p>
-          <p>• Only “has a valid BSN” (yes/no) is stored, never the BSN number. API tokens are stored encrypted.</p>
-          <p>• CV files are stored privately and are only available after login.</p>
-          <SettingsForm s={s} reload={reload} keys={['privacy.retention_months', 'general.company_name']} types={{ 'privacy.retention_months': 'number' }} hints={{ 'privacy.retention_months': 'Your retention policy. Review and delete old candidates regularly.' }} />
+          <p>• De assistent vraagt om toestemming voordat hij antwoorden verzamelt (in te stellen bij Assistent).</p>
+          <p>• Kandidaten kunnen <b>DELETE</b> / <b>VERWIJDER</b> sturen. Je krijgt een melding en verwijdert het profiel met één klik.</p>
+          <p>• Beheerders kunnen alle gegevens van een kandidaat exporteren (recht op inzage) en alles verwijderen (recht op vergetelheid).</p>
+          <p>• Alleen “heeft een geldig BSN” (ja/nee) wordt bewaard, nooit het BSN-nummer. API-tokens worden versleuteld opgeslagen.</p>
+          <p>• Cv's worden privé opgeslagen en zijn alleen te zien na inloggen.</p>
+          <p>• Openbare pagina's voor Meta: <a href="/privacy" target="_blank" rel="noreferrer">privacybeleid</a>, <a href="/terms" target="_blank" rel="noreferrer">voorwaarden</a> en <a href="/data-deletion" target="_blank" rel="noreferrer">gegevens verwijderen</a>.</p>
+          <SettingsForm s={s} reload={reload} keys={['privacy.retention_months', 'general.company_name']} types={{ 'privacy.retention_months': 'number' }} hints={{ 'privacy.retention_months': 'Hoe lang je gegevens bewaart. Controleer en verwijder oude kandidaten regelmatig.' }} />
         </div>
       </div>
     </div>
@@ -327,17 +328,17 @@ function AccountTab() {
   const [error, setError] = useState(null);
   const save = async () => {
     setError(null);
-    try { await api.post('/auth/change-password', f); toast('Password changed', 'success'); setF({ currentPassword: '', newPassword: '' }); } catch (err) { setError(err); }
+    try { await api.post('/auth/change-password', f); toast('Wachtwoord gewijzigd', 'success'); setF({ currentPassword: '', newPassword: '' }); } catch (err) { setError(err); }
   };
   return (
     <div className="card" style={{ maxWidth: 520 }}>
-      <div className="card-head"><h3>My account</h3></div>
+      <div className="card-head"><h3>Mijn account</h3></div>
       <div className="card-body stack">
-        <dl className="details"><dt>Name</dt><dd>{user.name}</dd><dt>Email</dt><dd>{user.email}</dd><dt>Role</dt><dd style={{ textTransform: 'capitalize' }}>{user.role}</dd></dl>
+        <dl className="details"><dt>Naam</dt><dd>{user.name}</dd><dt>E-mail</dt><dd>{user.email}</dd><dt>Rol</dt><dd>{{ admin: 'Beheerder', recruiter: 'Recruiter', viewer: 'Alleen lezen' }[user.role]}</dd></dl>
         <ErrorBox error={error} />
-        <Field label="Current password"><input type="password" value={f.currentPassword} onChange={(e) => setF({ ...f, currentPassword: e.target.value })} autoComplete="current-password" /></Field>
-        <Field label="New password" hint="At least 10 characters with letters and numbers."><input type="password" value={f.newPassword} onChange={(e) => setF({ ...f, newPassword: e.target.value })} autoComplete="new-password" /></Field>
-        <button type="button" className="btn primary" style={{ alignSelf: 'flex-start' }} onClick={save}>Change password</button>
+        <Field label="Huidig wachtwoord"><input type="password" value={f.currentPassword} onChange={(e) => setF({ ...f, currentPassword: e.target.value })} autoComplete="current-password" /></Field>
+        <Field label="Nieuw wachtwoord" hint="Minstens 10 tekens met letters en cijfers."><input type="password" value={f.newPassword} onChange={(e) => setF({ ...f, newPassword: e.target.value })} autoComplete="new-password" /></Field>
+        <button type="button" className="btn primary" style={{ alignSelf: 'flex-start' }} onClick={save}>Wachtwoord wijzigen</button>
       </div>
     </div>
   );

@@ -53,13 +53,13 @@ router.get('/import-template', async (_req, res) => {
 
 // Import from Excel (.xlsx) or CSV. Duplicates (same phone) are skipped and reported.
 router.post('/import', editor, upload.single('file'), async (req, res) => {
-  if (!req.file) throw badRequest('Choose an Excel or CSV file');
-  if (!/\.(xlsx|csv)$/i.test(req.file.originalname)) throw badRequest('Only .xlsx and .csv files can be imported');
+  if (!req.file) throw badRequest('Kies een Excel- of CSV-bestand');
+  if (!/\.(xlsx|csv)$/i.test(req.file.originalname)) throw badRequest('Alleen .xlsx- en .csv-bestanden kunnen worden geïmporteerd');
   let rows;
   try {
     rows = await parseUpload(req.file.buffer, req.file.originalname);
   } catch {
-    throw badRequest('The file could not be read. Use the import template.');
+    throw badRequest('Het bestand kon niet worden gelezen. Gebruik het voorbeeldbestand.');
   }
   const result = { created: 0, duplicates: [], errors: [] };
   for (const [i, raw] of rows.entries()) {
@@ -91,7 +91,7 @@ router.post('/', editor, validate(createSchema), async (req, res) => {
 router.get('/:id', async (req, res) => {
   const id = Number(req.params.id);
   const c = await one('SELECT * FROM candidates WHERE id = $1', [id]);
-  if (!c) throw notFound('Candidate not found');
+  if (!c) throw notFound('Kandidaat niet gevonden');
   const [files, conversation, submissions, history] = await Promise.all([
     many('SELECT id, kind, original_name, mime_type, size_bytes, source, created_at FROM candidate_files WHERE candidate_id = $1 ORDER BY created_at DESC', [id]),
     one('SELECT id, mode, status, bot_step, unread_count, last_inbound_at, last_message_at, simulated FROM conversations WHERE candidate_id = $1', [id]),
@@ -117,7 +117,7 @@ router.get('/:id/matches', async (req, res) => {
 
 router.post('/:id/files', editor, upload.single('file'), async (req, res) => {
   const id = Number(req.params.id);
-  if (!req.file) throw badRequest('Choose a file');
+  if (!req.file) throw badRequest('Kies een bestand');
   if (!(await one('SELECT id FROM candidates WHERE id = $1', [id]))) throw notFound();
   const f = await saveFile({
     candidateId: id, buffer: req.file.buffer, originalName: req.file.originalname,

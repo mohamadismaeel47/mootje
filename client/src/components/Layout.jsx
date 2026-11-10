@@ -8,8 +8,8 @@ import { useAuth } from '../App.jsx';
 import { initials, useAsync } from './ui.jsx';
 
 const TITLES = [
-  ['/candidates', 'Candidates'], ['/inbox', 'WhatsApp inbox'], ['/vacancies', 'Vacancies'], ['/agencies', 'Agencies'],
-  ['/submissions', 'Sent to agencies'], ['/settings', 'Settings'], ['/', 'Dashboard'],
+  ['/candidates', 'Kandidaten'], ['/inbox', 'WhatsApp-inbox'], ['/vacancies', 'Vacatures'], ['/agencies', 'Uitzendbureaus'],
+  ['/submissions', 'Naar bureaus gestuurd'], ['/settings', 'Instellingen'], ['/', 'Dashboard'],
 ];
 
 export default function Layout({ children }) {
@@ -26,31 +26,31 @@ export default function Layout({ children }) {
       <aside className={`sidebar ${open ? 'open' : ''}`}>
         <div className="brand">
           <img className="brand-logo" src="/logo.svg" alt="" />
-          <div>Recruitment CRM<small>Candidates &amp; WhatsApp</small></div>
+          <div>Recruitment CRM<small>Kandidaten &amp; WhatsApp</small></div>
         </div>
         <nav className="nav">
           <NavLink to="/" end><LayoutDashboard size={18} /> Dashboard</NavLink>
-          <NavLink to="/candidates"><Users size={18} /> Candidates</NavLink>
-          <NavLink to="/inbox"><MessageCircle size={18} /> WhatsApp inbox
+          <NavLink to="/candidates"><Users size={18} /> Kandidaten</NavLink>
+          <NavLink to="/inbox"><MessageCircle size={18} /> WhatsApp-inbox
             {unread.data > 0 && <span className="count">{unread.data}</span>}
           </NavLink>
-          <div className="nav-section">Jobs</div>
-          <NavLink to="/vacancies"><Briefcase size={18} /> Vacancies</NavLink>
-          <NavLink to="/agencies"><Building2 size={18} /> Agencies</NavLink>
-          <NavLink to="/submissions"><Send size={18} /> Sent to agencies</NavLink>
-          <div className="nav-section">System</div>
-          <NavLink to="/settings"><Settings size={18} /> Settings{!can('admin') && ' & account'}</NavLink>
+          <div className="nav-section">Werk</div>
+          <NavLink to="/vacancies"><Briefcase size={18} /> Vacatures</NavLink>
+          <NavLink to="/agencies"><Building2 size={18} /> Uitzendbureaus</NavLink>
+          <NavLink to="/submissions"><Send size={18} /> Naar bureaus gestuurd</NavLink>
+          <div className="nav-section">Systeem</div>
+          <NavLink to="/settings"><Settings size={18} /> Instellingen{!can('admin') && ' & account'}</NavLink>
         </nav>
         <div className="sidebar-footer">
           <div className="avatar">{initials(user.name)}</div>
-          <div className="who"><b>{user.name}</b><span>{user.role}</span></div>
-          <button type="button" onClick={logout} title="Log out" aria-label="Log out"><LogOut size={18} /></button>
+          <div className="who"><b>{user.name}</b><span>{{ admin: 'Beheerder', recruiter: 'Recruiter', viewer: 'Alleen lezen' }[user.role] || user.role}</span></div>
+          <button type="button" onClick={logout} title="Uitloggen" aria-label="Uitloggen"><LogOut size={18} /></button>
         </div>
       </aside>
       <div className={`backdrop ${open ? 'show' : ''}`} onClick={() => setOpen(false)} />
       <div className="main">
         <header className="topbar">
-          <button type="button" className="btn ghost icon menu-btn" onClick={() => setOpen(true)} aria-label="Open menu"><Menu size={20} /></button>
+          <button type="button" className="btn ghost icon menu-btn" onClick={() => setOpen(true)} aria-label="Menu openen"><Menu size={20} /></button>
           <div className="title">{title}</div>
           <Notifications />
         </header>
@@ -72,16 +72,16 @@ function Notifications() {
   const unread = data?.unread || 0;
   return (
     <div className="bell" ref={ref}>
-      <button type="button" className="btn ghost icon" onClick={() => setOpen((o) => !o)} aria-label="Notifications"><Bell size={19} /></button>
+      <button type="button" className="btn ghost icon" onClick={() => setOpen((o) => !o)} aria-label="Meldingen"><Bell size={19} /></button>
       {unread > 0 && <span className="dot">{unread > 99 ? '99+' : unread}</span>}
       {open && (
         <div className="dropdown">
           <div className="card-head">
-            <h3>Notifications</h3>
-            {unread > 0 && <button type="button" className="btn sm ghost" onClick={async () => { await api.post('/notifications/read-all'); reload(true); }}>Mark all read</button>}
+            <h3>Meldingen</h3>
+            {unread > 0 && <button type="button" className="btn sm ghost" onClick={async () => { await api.post('/notifications/read-all'); reload(true); }}>Alles gelezen</button>}
           </div>
           <div className="dropdown-list">
-            {!data?.items?.length && <div className="empty small">No notifications yet</div>}
+            {!data?.items?.length && <div className="empty small">Nog geen meldingen</div>}
             {data?.items?.map((n) => (
               <Link key={n.id} to={n.link || '#'} className={`notif ${n.read_at ? '' : 'unread'}`}
                 onClick={() => { setOpen(false); if (!n.read_at) api.post(`/notifications/${n.id}/read`).then(() => reload(true)); }}>

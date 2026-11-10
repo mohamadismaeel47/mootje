@@ -39,7 +39,7 @@ router.patch('/:id', validate(z.object({
 })), async (req, res) => {
   const id = Number(req.params.id);
   if (id === req.user.id && (req.body.active === false || (req.body.role && req.body.role !== 'admin'))) {
-    throw badRequest('You cannot disable yourself or remove your own admin role');
+    throw badRequest('Je kunt jezelf niet uitschakelen of je eigen beheerdersrol afnemen');
   }
   const existing = await one('SELECT * FROM users WHERE id = $1', [id]);
   if (!existing) throw notFound();

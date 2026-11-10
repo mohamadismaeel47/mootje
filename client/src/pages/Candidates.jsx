@@ -7,8 +7,8 @@ import CandidateForm, { toPayload } from '../components/CandidateForm.jsx';
 import { useAuth } from '../App.jsx';
 
 const FLAGS = [
-  ['driving_licence', 'Driving licence'], ['own_car', 'Own car'], ['forklift', 'Forklift'], ['ept', 'EPT'],
-  ['reach_truck', 'Reach truck'], ['has_bsn', 'BSN'], ['has_experience', 'Experience'],
+  ['driving_licence', 'Rijbewijs'], ['own_car', 'Eigen auto'], ['forklift', 'Heftruck'], ['ept', 'EPT'],
+  ['reach_truck', 'Reachtruck'], ['has_bsn', 'BSN'], ['has_experience', 'Ervaring'],
 ];
 
 export default function Candidates() {
@@ -43,14 +43,14 @@ export default function Candidates() {
     <>
       <div className="page-head">
         <div>
-          <h1>Candidates</h1>
-          <p>{data ? `${data.total} candidate${data.total === 1 ? '' : 's'}` : 'Loading…'}</p>
+          <h1>Kandidaten</h1>
+          <p>{data ? `${data.total} kandida${data.total === 1 ? 'at' : 'ten'}` : 'Laden…'}</p>
         </div>
         <div className="actions">
           <button type="button" className="btn" onClick={() => exportFile('xlsx')}><FileSpreadsheet size={16} /> Excel</button>
           <button type="button" className="btn" onClick={() => exportFile('csv')}><Download size={16} /> CSV</button>
-          {can('recruiter') && <button type="button" className="btn" onClick={() => setShowImport(true)}><Upload size={16} /> Import</button>}
-          {can('recruiter') && <button type="button" className="btn primary" onClick={() => setShowNew(true)}><UserPlus size={16} /> Add candidate</button>}
+          {can('recruiter') && <button type="button" className="btn" onClick={() => setShowImport(true)}><Upload size={16} /> Importeren</button>}
+          {can('recruiter') && <button type="button" className="btn primary" onClick={() => setShowNew(true)}><UserPlus size={16} /> Kandidaat toevoegen</button>}
         </div>
       </div>
 
@@ -58,25 +58,25 @@ export default function Candidates() {
         <div className="toolbar">
           <div className="search">
             <Search size={16} />
-            <input type="search" placeholder="Search name, phone, email, city, job…" value={q} onChange={(e) => setQ(e.target.value)} aria-label="Search candidates" />
+            <input type="search" placeholder="Zoek op naam, telefoon, e-mail, plaats, werk…" value={q} onChange={(e) => setQ(e.target.value)} aria-label="Kandidaten zoeken" />
           </div>
           <select value={status} onChange={(e) => update({ status: e.target.value })} aria-label="Status">
-            <option value="">All statuses</option>
+            <option value="">Alle statussen</option>
             {STATUSES.map((s) => <option key={s} value={s}>{STATUS_LABELS[s]}</option>)}
           </select>
-          <select value={english} onChange={(e) => update({ english_level: e.target.value })} aria-label="English level">
-            <option value="">Any English</option>
-            {Object.entries(ENGLISH_LABELS).filter(([k]) => k !== 'none').map(([k, l]) => <option key={k} value={k}>English: {l}+</option>)}
+          <select value={english} onChange={(e) => update({ english_level: e.target.value })} aria-label="Niveau Engels">
+            <option value="">Elk niveau Engels</option>
+            {Object.entries(ENGLISH_LABELS).filter(([k]) => k !== 'none').map(([k, l]) => <option key={k} value={k}>Engels: {l}+</option>)}
           </select>
-          <select value={sort} onChange={(e) => update({ sort: e.target.value })} aria-label="Sort">
-            <option value="newest">Newest first</option>
-            <option value="oldest">Oldest first</option>
-            <option value="updated">Recently updated</option>
-            <option value="name">Name A–Z</option>
+          <select value={sort} onChange={(e) => update({ sort: e.target.value })} aria-label="Sorteren">
+            <option value="newest">Nieuwste eerst</option>
+            <option value="oldest">Oudste eerst</option>
+            <option value="updated">Laatst gewijzigd</option>
+            <option value="name">Naam A–Z</option>
           </select>
         </div>
         <div className="toolbar" style={{ paddingTop: 8, paddingBottom: 10 }}>
-          <span className="small muted">Must have:</span>
+          <span className="small muted">Moet hebben:</span>
           <div className="chips">
             {FLAGS.map(([k, l]) => (
               <button type="button" key={k} className={`chip ${flags.includes(k) ? 'on' : ''}`} onClick={() => update({ [k]: flags.includes(k) ? '' : 'true' })}>{l}</button>
@@ -85,30 +85,30 @@ export default function Candidates() {
         </div>
         <ErrorBox error={error} />
         {loading && !data ? <Spinner /> : data?.items.length === 0 ? (
-          <Empty icon={Users} title="No candidates found">Try other filters, or add a new candidate.</Empty>
+          <Empty icon={Users} title="Geen kandidaten gevonden">Probeer andere filters, of voeg een nieuwe kandidaat toe.</Empty>
         ) : (
           <div className="table-wrap">
             <table className="table">
               <thead>
-                <tr><th>Candidate</th><th>Status</th><th>Location</th><th>Skills</th><th>Desired job</th><th>Registered</th></tr>
+                <tr><th>Kandidaat</th><th>Status</th><th>Woonplaats</th><th>Vaardigheden</th><th>Gewenst werk</th><th>Ingeschreven</th></tr>
               </thead>
               <tbody>
                 {data?.items.map((c) => (
                   <tr key={c.id} className="click" onClick={() => navigate(`/candidates/${c.id}`)}>
                     <td>
-                      <Link to={`/candidates/${c.id}`} className="name" onClick={(e) => e.stopPropagation()}>{c.full_name || 'Name not known yet'}</Link>
+                      <Link to={`/candidates/${c.id}`} className="name" onClick={(e) => e.stopPropagation()}>{c.full_name || 'Naam nog onbekend'}</Link>
                       <div className="sub">{fmtPhone(c.phone)}{c.file_count > 0 && <> · <Paperclip size={12} style={{ verticalAlign: -1 }} /> CV</>}</div>
                     </td>
                     <td><StatusBadge status={c.status} /></td>
                     <td className="sub">{[c.current_city, c.current_country].filter(Boolean).join(', ') || '—'}</td>
                     <td>
                       <div className="tags">
-                        {c.driving_licence && <span className="tag">Licence</span>}
-                        {c.own_car && <span className="tag">Car</span>}
-                        {c.forklift && <span className="tag">Forklift</span>}
+                        {c.driving_licence && <span className="tag">Rijbewijs</span>}
+                        {c.own_car && <span className="tag">Auto</span>}
+                        {c.forklift && <span className="tag">Heftruck</span>}
                         {c.ept && <span className="tag">EPT</span>}
                         {c.reach_truck && <span className="tag">Reach</span>}
-                        {c.english_level && c.english_level !== 'none' && <span className="tag">EN {c.english_level}</span>}
+                        {c.english_level && c.english_level !== 'none' && <span className="tag">Engels {ENGLISH_LABELS[c.english_level]}</span>}
                       </div>
                     </td>
                     <td className="sub">{c.desired_job || '—'}</td>
@@ -121,10 +121,10 @@ export default function Candidates() {
         )}
         {data && data.total > data.limit && (
           <div className="pagination">
-            <span>Page {data.page} of {Math.ceil(data.total / data.limit)}</span>
+            <span>Pagina {data.page} van {Math.ceil(data.total / data.limit)}</span>
             <div className="actions">
-              <button type="button" className="btn sm" disabled={page <= 1} onClick={() => update({ page: String(page - 1) })}>Previous</button>
-              <button type="button" className="btn sm" disabled={page * data.limit >= data.total} onClick={() => update({ page: String(page + 1) })}>Next</button>
+              <button type="button" className="btn sm" disabled={page <= 1} onClick={() => update({ page: String(page - 1) })}>Vorige</button>
+              <button type="button" className="btn sm" disabled={page * data.limit >= data.total} onClick={() => update({ page: String(page + 1) })}>Volgende</button>
             </div>
           </div>
         )}
@@ -154,19 +154,19 @@ function NewCandidate({ onClose, onCreated, isAdmin }) {
     setBusy(true); setError(null);
     try {
       const c = await api.post('/candidates', toPayload(form));
-      toast('Candidate added', 'success');
+      toast('Kandidaat toegevoegd', 'success');
       onCreated(c);
     } catch (err) { setError(err); } finally { setBusy(false); }
   };
   return (
-    <Modal title="Add candidate" wide onClose={onClose} footer={(
+    <Modal title="Kandidaat toevoegen" wide onClose={onClose} footer={(
       <>
         <button type="button" className="btn" onClick={onClose}>Cancel</button>
-        <button type="button" className="btn primary" onClick={submit} disabled={busy || !form.phone || !!dup}>Save candidate</button>
+        <button type="button" className="btn primary" onClick={submit} disabled={busy || !form.phone || !!dup}>Kandidaat opslaan</button>
       </>
     )}>
-      {error && <div style={{ marginBottom: 12 }}><Alert type="error">{error.message}{error.data?.details?.existingId && <> — <Link to={`/candidates/${error.data.details.existingId}`}>open existing candidate</Link></>}</Alert></div>}
-      {dup && <div style={{ marginBottom: 12 }}><Alert type="warn">This phone number already belongs to <Link to={`/candidates/${dup.existingId}`}>{dup.existingName || 'an existing candidate'}</Link>. Duplicates are not allowed.</Alert></div>}
+      {error && <div style={{ marginBottom: 12 }}><Alert type="error">{error.message}{error.data?.details?.existingId && <> — <Link to={`/candidates/${error.data.details.existingId}`}>bestaande kandidaat openen</Link></>}</Alert></div>}
+      {dup && <div style={{ marginBottom: 12 }}><Alert type="warn">Dit telefoonnummer hoort al bij <Link to={`/candidates/${dup.existingId}`}>{dup.existingName || 'een bestaande kandidaat'}</Link>. Dubbele kandidaten zijn niet toegestaan.</Alert></div>}
       <CandidateForm value={form} onChange={onChange} isAdmin={isAdmin} />
     </Modal>
   );
@@ -182,25 +182,25 @@ function ImportModal({ onClose, onDone }) {
     try { const r = await api.upload('/candidates/import', file); setResult(r); onDone(); } catch (e) { setError(e); } finally { setBusy(false); }
   };
   return (
-    <Modal title="Import candidates" onClose={onClose} footer={(
+    <Modal title="Kandidaten importeren" onClose={onClose} footer={(
       <>
-        <button type="button" className="btn" onClick={onClose}>{result ? 'Close' : 'Cancel'}</button>
-        {!result && <button type="button" className="btn primary" disabled={!file || busy} onClick={run}>{busy ? 'Importing…' : 'Import'}</button>}
+        <button type="button" className="btn" onClick={onClose}>{result ? 'Sluiten' : 'Annuleren'}</button>
+        {!result && <button type="button" className="btn primary" disabled={!file || busy} onClick={run}>{busy ? 'Bezig met importeren…' : 'Importeren'}</button>}
       </>
     )}>
       <div className="stack">
-        <p className="muted">Upload an Excel (.xlsx) or CSV file. The first row must contain column names like <b>Full name</b>, <b>Phone</b>, <b>Email</b>, <b>City</b>. Candidates whose phone number already exists are skipped.</p>
-        <a href="/api/candidates/import-template" className="btn sm" style={{ alignSelf: 'flex-start' }}><Download size={14} /> Download template</a>
+        <p className="muted">Upload een Excel-bestand (.xlsx) of CSV-bestand. In de eerste rij staan kolomnamen zoals <b>Full name</b>, <b>Phone</b>, <b>Email</b>, <b>City</b> (gebruik het voorbeeldbestand). Kandidaten met een telefoonnummer dat al bestaat, worden overgeslagen.</p>
+        <a href="/api/candidates/import-template" className="btn sm" style={{ alignSelf: 'flex-start' }}><Download size={14} /> Voorbeeldbestand downloaden</a>
         <label className="dropzone">
           <input type="file" accept=".xlsx,.csv" hidden onChange={(e) => setFile(e.target.files[0])} />
-          <Upload size={22} /><div>{file ? file.name : 'Click to choose a file'}</div>
+          <Upload size={22} /><div>{file ? file.name : 'Klik om een bestand te kiezen'}</div>
         </label>
         <ErrorBox error={error} />
         {result && (
           <Alert type={result.errors.length ? 'warn' : 'success'}>
-            <b>{result.created}</b> candidates imported. <b>{result.duplicates.length}</b> duplicates skipped. <b>{result.errors.length}</b> rows with errors.
-            {result.errors.slice(0, 8).map((e) => <div key={e.line} className="small">Row {e.line}: {e.error}</div>)}
-            {result.duplicates.slice(0, 8).map((d) => <div key={d.line} className="small">Row {d.line}: phone {d.phone} already exists</div>)}
+            <b>{result.created}</b> kandidaten geïmporteerd. <b>{result.duplicates.length}</b> dubbele overgeslagen. <b>{result.errors.length}</b> rijen met fouten.
+            {result.errors.slice(0, 8).map((e) => <div key={e.line} className="small">Rij {e.line}: {e.error}</div>)}
+            {result.duplicates.slice(0, 8).map((d) => <div key={d.line} className="small">Rij {d.line}: telefoon {d.phone} bestaat al</div>)}
           </Alert>
         )}
       </div>

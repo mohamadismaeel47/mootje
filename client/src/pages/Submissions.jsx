@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { Send, Check } from 'lucide-react';
 import { api, qs, fmtDateTime, fmtPhone } from '../api.js';
-import { useAsync, Spinner, ErrorBox, Empty, Modal, Field, useToast, SubmissionBadge } from '../components/ui.jsx';
+import { useAsync, Spinner, ErrorBox, Empty, Modal, Field, useToast, SubmissionBadge, SUB_LABELS } from '../components/ui.jsx';
 import { SendWrapper } from './VacancyDetail.jsx';
 import { useAuth } from '../App.jsx';
 
@@ -18,19 +18,19 @@ export default function Submissions() {
   return (
     <>
       <div className="page-head">
-        <div><h1>Sent to agencies</h1><p>Every proposal needs your approval before it is sent. Track interviews and placements here.</p></div>
+        <div><h1>Naar bureaus gestuurd</h1><p>Elk voorstel heeft jouw goedkeuring nodig voordat het wordt verstuurd. Volg hier gesprekken en plaatsingen.</p></div>
       </div>
       <div className="card">
         <div className="toolbar">
           <div className="chips">
-            <button type="button" className={`chip ${!status ? 'on' : ''}`} onClick={() => setParams({})}>All</button>
-            {STATUSES.map((s) => <button type="button" key={s} className={`chip ${status === s ? 'on' : ''}`} onClick={() => setParams({ status: s })}>{s[0].toUpperCase() + s.slice(1)}</button>)}
+            <button type="button" className={`chip ${!status ? 'on' : ''}`} onClick={() => setParams({})}>Alles</button>
+            {STATUSES.map((s) => <button type="button" key={s} className={`chip ${status === s ? 'on' : ''}`} onClick={() => setParams({ status: s })}>{SUB_LABELS[s]}</button>)}
           </div>
         </div>
         <ErrorBox error={error} />
-        {loading && !data ? <Spinner /> : data?.length === 0 ? <Empty icon={Send} title="Nothing here yet">Propose candidates from a candidate profile or a vacancy.</Empty> : (
+        {loading && !data ? <Spinner /> : data?.length === 0 ? <Empty icon={Send} title="Hier staat nog niets">Stel kandidaten voor vanuit een kandidaatprofiel of een vacature.</Empty> : (
           <div className="table-wrap"><table className="table">
-            <thead><tr><th>Candidate</th><th>Agency</th><th>Vacancy</th><th>Match</th><th>Status</th><th>Interview</th><th>Sent</th><th /></tr></thead>
+            <thead><tr><th>Kandidaat</th><th>Bureau</th><th>Vacature</th><th>Match</th><th>Status</th><th>Gesprek</th><th>Verstuurd</th><th /></tr></thead>
             <tbody>{data?.map((s) => (
               <tr key={s.id}>
                 <td><Link to={`/candidates/${s.candidate_id}`} className="name">{s.full_name || fmtPhone(s.phone)}</Link></td>
@@ -39,11 +39,11 @@ export default function Submissions() {
                 <td>{s.match_score != null ? `${s.match_score}%` : '—'}</td>
                 <td><SubmissionBadge status={s.status} /></td>
                 <td className="sub">{s.interview_at ? fmtDateTime(s.interview_at) : '—'}</td>
-                <td className="sub">{s.sent_at ? `${fmtDateTime(s.sent_at)}${s.approved_by_name ? ` by ${s.approved_by_name}` : ''}` : '—'}</td>
+                <td className="sub">{s.sent_at ? `${fmtDateTime(s.sent_at)}${s.approved_by_name ? ` door ${s.approved_by_name}` : ''}` : '—'}</td>
                 <td style={{ textAlign: 'right', whiteSpace: 'nowrap' }}>
                   {can('recruiter') && (s.status === 'proposed'
-                    ? <button type="button" className="btn sm primary" onClick={() => setSendItem(s)}><Check size={14} /> Approve &amp; send</button>
-                    : <button type="button" className="btn sm" onClick={() => setEditItem(s)}>Update</button>)}
+                    ? <button type="button" className="btn sm primary" onClick={() => setSendItem(s)}><Check size={14} /> Goedkeuren &amp; versturen</button>
+                    : <button type="button" className="btn sm" onClick={() => setEditItem(s)}>Bijwerken</button>)}
                 </td>
               </tr>
             ))}</tbody>
@@ -71,18 +71,18 @@ function UpdateModal({ s, onClose, onDone }) {
   const save = async () => {
     try {
       await api.patch(`/submissions/${s.id}`, { status, interview_at: interview ? new Date(interview).toISOString() : null, notes });
-      toast('Updated', 'success'); onDone(); onClose();
+      toast('Bijgewerkt', 'success'); onDone(); onClose();
     } catch (err) { setError(err); }
   };
   return (
-    <Modal title={`Update: ${s.full_name || 'candidate'}`} onClose={onClose} footer={<><button type="button" className="btn" onClick={onClose}>Cancel</button><button type="button" className="btn primary" onClick={save}>Save</button></>}>
+    <Modal title={`Bijwerken: ${s.full_name || 'kandidaat'}`} onClose={onClose} footer={<><button type="button" className="btn" onClick={onClose}>Annuleren</button><button type="button" className="btn primary" onClick={save}>Opslaan</button></>}>
       <div className="stack">
         <ErrorBox error={error} />
-        <Field label="Status" hint="Interview and Placed also update the candidate status.">
-          <select value={status} onChange={(e) => setStatus(e.target.value)}>{STATUSES.map((x) => <option key={x} value={x}>{x[0].toUpperCase() + x.slice(1)}</option>)}</select>
+        <Field label="Status" hint="Sollicitatiegesprek en Geplaatst passen ook de status van de kandidaat aan.">
+          <select value={status} onChange={(e) => setStatus(e.target.value)}>{STATUSES.map((x) => <option key={x} value={x}>{SUB_LABELS[x]}</option>)}</select>
         </Field>
-        <Field label="Interview date and time"><input type="datetime-local" value={interview} onChange={(e) => setInterview(e.target.value)} /></Field>
-        <Field label="Notes"><textarea value={notes} onChange={(e) => setNotes(e.target.value)} /></Field>
+        <Field label="Datum en tijd gesprek"><input type="datetime-local" value={interview} onChange={(e) => setInterview(e.target.value)} /></Field>
+        <Field label="Notities"><textarea value={notes} onChange={(e) => setNotes(e.target.value)} /></Field>
       </div>
     </Modal>
   );

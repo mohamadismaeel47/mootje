@@ -45,25 +45,25 @@ export async function missingConfig() {
 
 // Human-friendly explanations for the most common Meta error codes.
 const HINTS = {
-  190: 'The access token is invalid or expired. Create a permanent System User token in Meta Business Settings.',
-  10: 'The app has no permission. Give the System User the whatsapp_business_messaging and whatsapp_business_management permissions.',
-  200: 'Permission error. Check that the System User has access to this WhatsApp Business Account.',
-  100: 'Invalid parameter. Check the Phone Number ID, Business Account ID and the recipient phone number.',
-  131030: 'Recipient is not in the allowed list. In test mode you can only send to numbers you added in the Meta dashboard.',
-  131047: 'More than 24 hours passed since the candidate last wrote. You must use an approved message template.',
-  131026: 'Message could not be delivered. The number may not use WhatsApp, or the candidate has an old WhatsApp version.',
-  131051: 'This message type is not supported.',
-  132000: 'Template parameters do not match the template. Check the number of variables.',
-  132001: 'Template does not exist or is not approved in this language.',
-  133010: 'The phone number is not registered on the Cloud API. Register it first (Phone numbers > Register).',
-  368: 'The account is temporarily blocked for policy violations.',
-  130429: 'Rate limit reached. Wait a moment and try again.',
-  131056: 'Too many messages to the same person in a short time. Wait a moment.',
+  190: 'De access token is ongeldig of verlopen. Maak een permanente token van een systeemgebruiker (System User token) in de Meta-bedrijfsinstellingen.',
+  10: 'De app heeft geen toestemming. Geef de systeemgebruiker de rechten whatsapp_business_messaging en whatsapp_business_management.',
+  200: 'Geen toestemming. Controleer of de systeemgebruiker toegang heeft tot dit WhatsApp Business-account.',
+  100: 'Ongeldige waarde. Controleer het Phone Number ID, het Business Account ID en het telefoonnummer van de ontvanger.',
+  131030: 'Ontvanger staat niet in de toegestane lijst. In testmodus kun je alleen sturen naar nummers die je in Meta hebt toegevoegd.',
+  131047: 'Er zijn meer dan 24 uur voorbij sinds de kandidaat schreef. Gebruik een goedgekeurde template.',
+  131026: 'Bericht kon niet worden afgeleverd. Het nummer gebruikt misschien geen WhatsApp, of de kandidaat heeft een oude versie.',
+  131051: 'Dit soort bericht wordt niet ondersteund.',
+  132000: 'De variabelen passen niet bij de template. Controleer het aantal variabelen.',
+  132001: 'De template bestaat niet of is niet goedgekeurd in deze taal.',
+  133010: 'Het telefoonnummer is niet geregistreerd voor de Cloud API. Registreer het eerst (Telefoonnummers > Registreren).',
+  368: 'Het account is tijdelijk geblokkeerd vanwege overtreding van de regels.',
+  130429: 'Te veel berichten tegelijk. Wacht even en probeer het opnieuw.',
+  131056: 'Te veel berichten naar dezelfde persoon in korte tijd. Wacht even.',
 };
 
 async function graph(path, { method = 'GET', body, config, raw = false } = {}) {
   const c = config || (await getWhatsAppConfig());
-  if (!c.accessToken) throw new WhatsAppError('WhatsApp is not configured: the access token is missing.', { status: 400 });
+  if (!c.accessToken) throw new WhatsAppError('WhatsApp is niet ingesteld: de access token ontbreekt.', { status: 400 });
   const url = path.startsWith('http') ? path : `${GRAPH}/${c.version}/${path}`;
   let res;
   try {
@@ -78,7 +78,7 @@ async function graph(path, { method = 'GET', body, config, raw = false } = {}) {
     });
   } catch (err) {
     logger.error('WhatsApp API network error', { path: path.split('?')[0], error: err.message });
-    throw new WhatsAppError(`Could not reach Meta (${err.name === 'TimeoutError' ? 'timeout' : err.message}).`, { status: 502 });
+    throw new WhatsAppError(`Meta is niet bereikbaar (${err.name === 'TimeoutError' ? 'time-out' : err.message}).`, { status: 502 });
   }
   if (raw && res.ok) return res;
   const data = await res.json().catch(() => ({}));
@@ -86,7 +86,7 @@ async function graph(path, { method = 'GET', body, config, raw = false } = {}) {
     const e = data.error || {};
     const hint = HINTS[e.code] || HINTS[e.error_subcode];
     logger.warn('WhatsApp API error', { path: path.split('?')[0], http: res.status, code: e.code, subcode: e.error_subcode, fbtrace_id: e.fbtrace_id });
-    throw new WhatsAppError(`${e.message || `Meta returned HTTP ${res.status}`}${e.error_data?.details ? ` (${e.error_data.details})` : ''}`, {
+    throw new WhatsAppError(`${e.message || `Meta gaf HTTP ${res.status}`}${e.error_data?.details ? ` (${e.error_data.details})` : ''}`, {
       status: res.status >= 500 ? 502 : 400, code: e.code, subcode: e.error_subcode, fbtraceId: e.fbtrace_id, hint,
     });
   }
@@ -95,7 +95,7 @@ async function graph(path, { method = 'GET', body, config, raw = false } = {}) {
 
 async function sendPayload(to, payload) {
   const c = await getWhatsAppConfig();
-  if (!c.phoneNumberId) throw new WhatsAppError('WhatsApp is not configured: the Phone Number ID is missing.', { status: 400 });
+  if (!c.phoneNumberId) throw new WhatsAppError('WhatsApp is niet ingesteld: het Phone Number ID ontbreekt.', { status: 400 });
   const data = await graph(`${c.phoneNumberId}/messages`, {
     method: 'POST',
     config: c,
@@ -136,7 +136,7 @@ export async function downloadMedia(mediaId) {
 
 export async function listTemplates() {
   const c = await getWhatsAppConfig();
-  if (!c.businessAccountId) throw new WhatsAppError('The WhatsApp Business Account ID is missing.', { status: 400 });
+  if (!c.businessAccountId) throw new WhatsAppError('Het WhatsApp Business Account ID ontbreekt.', { status: 400 });
   const data = await graph(`${c.businessAccountId}/message_templates?fields=name,status,language,category,components&limit=200`, { config: c });
   return (data.data || []).map((t) => ({
     name: t.name,
@@ -156,14 +156,14 @@ export async function testConnection() {
   const push = (name, ok, detail, hint) => steps.push({ name, ok, detail, hint });
 
   const missing = await missingConfig();
-  push('Settings complete', missing.length === 0, missing.length ? `Missing: ${missing.join(', ')}` : 'All required values are filled in');
+  push('Instellingen compleet', missing.length === 0, missing.length ? `Ontbreekt: ${missing.join(', ')}` : 'Alle verplichte waarden zijn ingevuld');
   if (!c.accessToken) return { ok: false, steps };
 
   try {
     const me = await graph('me?fields=id,name', { config: c });
-    push('Access token valid', true, `Token belongs to: ${me.name || me.id}`);
+    push('Access token geldig', true, `Token hoort bij: ${me.name || me.id}`);
   } catch (e) {
-    push('Access token valid', false, e.message, e.hint);
+    push('Access token geldig', false, e.message, e.hint);
     return { ok: false, steps };
   }
 
@@ -175,21 +175,21 @@ export async function testConnection() {
         const extra = await graph(`${c.phoneNumberId}?fields=is_on_biz_app`, { config: c });
         p.is_on_biz_app = extra.is_on_biz_app;
       } catch { /* field not available for this number/API version */ }
-      push('Phone number found', true, `${p.display_phone_number} (${p.verified_name || 'no name'}) – quality: ${p.quality_rating || 'unknown'}`);
+      push('Telefoonnummer gevonden', true, `${p.display_phone_number} (${p.verified_name || 'geen naam'}) – kwaliteit: ${p.quality_rating || 'onbekend'}`);
       const registered = p.platform_type === 'CLOUD_API';
-      push('Number registered on Cloud API', registered,
-        registered ? 'platform_type = CLOUD_API' : `platform_type = ${p.platform_type || 'unknown'}`,
-        registered ? undefined : 'The number is not registered for the Cloud API yet. Do NOT register a number that is in use on the WhatsApp app unless you use Coexistence onboarding (see README).');
+      push('Nummer geregistreerd voor de Cloud API', registered,
+        registered ? 'platform_type = CLOUD_API' : `platform_type = ${p.platform_type || 'onbekend'}`,
+        registered ? undefined : 'Het nummer is nog niet geregistreerd voor de Cloud API. Registreer GEEN nummer dat nog in de WhatsApp-app wordt gebruikt, tenzij je Coexistence gebruikt.');
       if (p.is_on_biz_app !== undefined) {
-        push('Coexistence (also on WhatsApp Business app)', true, p.is_on_biz_app ? 'Yes – this number is also used in the WhatsApp Business app (Coexistence)' : 'No – this number is only on the Cloud API');
+        push('Coexistence (ook in de WhatsApp Business-app)', true, p.is_on_biz_app ? 'Ja – dit nummer wordt ook in de WhatsApp Business-app gebruikt (Coexistence)' : 'Nee – dit nummer staat alleen op de Cloud API');
       }
       if (p.name_status) {
         const usable = ['APPROVED', 'AVAILABLE_WITHOUT_REVIEW'].includes(p.name_status);
-        push('Display name status', usable, usable ? `${p.name_status} – the display name can be used` : p.name_status,
-          usable ? undefined : 'Check the display name in WhatsApp Manager > Phone numbers.');
+        push('Status weergavenaam', usable, usable ? `${p.name_status} – de weergavenaam kan worden gebruikt` : p.name_status,
+          usable ? undefined : 'Controleer de weergavenaam in WhatsApp Manager > Telefoonnummers.');
       }
     } catch (e) {
-      push('Phone number found', false, e.message, e.hint);
+      push('Telefoonnummer gevonden', false, e.message, e.hint);
     }
   }
 
@@ -197,21 +197,21 @@ export async function testConnection() {
     try {
       const subs = await graph(`${c.businessAccountId}/subscribed_apps`, { config: c });
       const ok = (subs.data || []).length > 0;
-      push('App subscribed to WhatsApp Business Account', ok,
-        ok ? `Subscribed apps: ${subs.data.map((a) => a.whatsapp_business_api_data?.name || a.whatsapp_business_api_data?.id || 'app').join(', ')}` : 'No app is subscribed – incoming messages will NOT arrive.',
-        ok ? undefined : 'Use the "Subscribe app" button, or POST /{WABA_ID}/subscribed_apps in Meta.');
+      push('App gekoppeld aan WhatsApp Business-account', ok,
+        ok ? `Gekoppelde apps: ${subs.data.map((a) => a.whatsapp_business_api_data?.name || a.whatsapp_business_api_data?.id || 'app').join(', ')}` : 'Er is geen app gekoppeld – berichten komen NIET binnen.',
+        ok ? undefined : 'Gebruik de knop "App koppelen".');
     } catch (e) {
-      push('App subscribed to WhatsApp Business Account', false, e.message, e.hint);
+      push('App gekoppeld aan WhatsApp Business-account', false, e.message, e.hint);
     }
   }
 
-  push('App secret present', !!c.appSecret, c.appSecret ? 'Incoming webhooks will be signature-checked' : 'Without the App Secret incoming webhooks are rejected');
+  push('App-geheim aanwezig', !!c.appSecret, c.appSecret ? 'Binnenkomende webhooks worden gecontroleerd' : 'Zonder App-geheim worden binnenkomende webhooks geweigerd');
   return { ok: steps.every((s) => s.ok), steps };
 }
 
 export async function subscribeApp() {
   const c = await getWhatsAppConfig();
-  if (!c.businessAccountId) throw new WhatsAppError('The WhatsApp Business Account ID is missing.', { status: 400 });
+  if (!c.businessAccountId) throw new WhatsAppError('Het WhatsApp Business Account ID ontbreekt.', { status: 400 });
   return graph(`${c.businessAccountId}/subscribed_apps`, { method: 'POST', config: c });
 }
 

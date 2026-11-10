@@ -15,15 +15,15 @@ export default function Agencies() {
   return (
     <>
       <div className="page-head">
-        <div><h1>Agencies</h1><p>Recruitment and staffing agencies you work with.</p></div>
-        {can('recruiter') && <button type="button" className="btn primary" onClick={() => setEdit({})}><Plus size={16} /> New agency</button>}
+        <div><h1>Uitzendbureaus</h1><p>De uitzend- en wervingsbureaus waarmee je samenwerkt.</p></div>
+        {can('recruiter') && <button type="button" className="btn primary" onClick={() => setEdit({})}><Plus size={16} /> Nieuw bureau</button>}
       </div>
       <div className="card">
-        <div className="toolbar"><div className="search"><Search size={16} /><input type="search" placeholder="Search agencies" value={q} onChange={(e) => setQ(e.target.value)} aria-label="Search agencies" /></div></div>
+        <div className="toolbar"><div className="search"><Search size={16} /><input type="search" placeholder="Zoek bureaus" value={q} onChange={(e) => setQ(e.target.value)} aria-label="Bureaus zoeken" /></div></div>
         <ErrorBox error={error} />
-        {loading && !data ? <Spinner /> : data?.length === 0 ? <Empty icon={Building2} title="No agencies yet">Add the agencies you send candidates to.</Empty> : (
+        {loading && !data ? <Spinner /> : data?.length === 0 ? <Empty icon={Building2} title="Nog geen bureaus">Voeg de bureaus toe waar je kandidaten naartoe stuurt.</Empty> : (
           <div className="table-wrap"><table className="table">
-            <thead><tr><th>Agency</th><th>Contact</th><th>Email / phone</th><th>Active vacancies</th><th>Candidates sent</th></tr></thead>
+            <thead><tr><th>Bureau</th><th>Contactpersoon</th><th>E-mail / telefoon</th><th>Actieve vacatures</th><th>Kandidaten gestuurd</th></tr></thead>
             <tbody>{data?.map((a) => (
               <tr key={a.id} className="click" onClick={() => navigate(`/agencies/${a.id}`)}>
                 <td><Link to={`/agencies/${a.id}`} className="name" onClick={(e) => e.stopPropagation()}>{a.name}</Link><div className="sub">{a.address || ''}</div></td>
@@ -50,19 +50,19 @@ export function AgencyForm({ agency, onClose, onSaved }) {
     const body = { name: f.name, contact_person: f.contact_person, email: f.email, phone: f.phone, address: f.address, notes: f.notes };
     try {
       const a = agency.id ? await api.put(`/agencies/${agency.id}`, body) : await api.post('/agencies', body);
-      toast('Agency saved', 'success'); onSaved(a); onClose();
+      toast('Bureau opgeslagen', 'success'); onSaved(a); onClose();
     } catch (err) { setError(err); }
   };
   return (
-    <Modal title={agency.id ? 'Edit agency' : 'New agency'} onClose={onClose} footer={<><button type="button" className="btn" onClick={onClose}>Cancel</button><button type="button" className="btn primary" disabled={!f.name} onClick={save}>Save agency</button></>}>
+    <Modal title={agency.id ? 'Bureau bewerken' : 'Nieuw bureau'} onClose={onClose} footer={<><button type="button" className="btn" onClick={onClose}>Annuleren</button><button type="button" className="btn primary" disabled={!f.name} onClick={save}>Bureau opslaan</button></>}>
       <ErrorBox error={error} />
       <div className="form-grid">
-        <Field label="Agency name" className="span-2"><input type="text" value={f.name} onChange={set('name')} autoFocus /></Field>
-        <Field label="Contact person"><input type="text" value={f.contact_person || ''} onChange={set('contact_person')} /></Field>
-        <Field label="Phone"><input type="tel" value={f.phone || ''} onChange={set('phone')} /></Field>
-        <Field label="Email" className="span-2" hint="Used to email candidates after your approval"><input type="email" value={f.email || ''} onChange={set('email')} /></Field>
-        <Field label="Address" className="span-2"><input type="text" value={f.address || ''} onChange={set('address')} /></Field>
-        <Field label="Notes" className="span-2"><textarea value={f.notes || ''} onChange={set('notes')} /></Field>
+        <Field label="Naam bureau" className="span-2"><input type="text" value={f.name} onChange={set('name')} autoFocus /></Field>
+        <Field label="Contactpersoon"><input type="text" value={f.contact_person || ''} onChange={set('contact_person')} /></Field>
+        <Field label="Telefoon"><input type="tel" value={f.phone || ''} onChange={set('phone')} /></Field>
+        <Field label="E-mail" className="span-2" hint="Hierheen mail je kandidaten na jouw goedkeuring"><input type="email" value={f.email || ''} onChange={set('email')} /></Field>
+        <Field label="Adres" className="span-2"><input type="text" value={f.address || ''} onChange={set('address')} /></Field>
+        <Field label="Notities" className="span-2"><textarea value={f.notes || ''} onChange={set('notes')} /></Field>
       </div>
     </Modal>
   );

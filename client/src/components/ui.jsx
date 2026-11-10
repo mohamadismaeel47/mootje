@@ -86,8 +86,9 @@ export function StatusBadge({ status }) {
 }
 
 const SUB_COLOR = { proposed: 'amber', sent: 'blue', interview: 'purple', placed: 'green', rejected: 'red', withdrawn: '' };
+export const SUB_LABELS = { proposed: 'Voorgesteld', sent: 'Verstuurd', interview: 'Sollicitatiegesprek', placed: 'Geplaatst', rejected: 'Afgewezen', withdrawn: 'Ingetrokken' };
 export function SubmissionBadge({ status }) {
-  return <span className={`badge ${SUB_COLOR[status] || ''}`}>{status[0].toUpperCase() + status.slice(1)}</span>;
+  return <span className={`badge ${SUB_COLOR[status] || ''}`}>{SUB_LABELS[status] || status}</span>;
 }
 
 export function Modal({ title, onClose, children, footer, wide }) {
@@ -101,7 +102,7 @@ export function Modal({ title, onClose, children, footer, wide }) {
       <div className={`modal ${wide ? 'wide' : ''}`} role="dialog" aria-modal="true" aria-label={title}>
         <div className="modal-head">
           <h2>{title}</h2>
-          <button type="button" className="btn ghost icon" onClick={onClose} aria-label="Close"><X size={18} /></button>
+          <button type="button" className="btn ghost icon" onClick={onClose} aria-label="Sluiten"><X size={18} /></button>
         </div>
         <div className="modal-body">{children}</div>
         {footer && <div className="modal-foot">{footer}</div>}
@@ -110,12 +111,12 @@ export function Modal({ title, onClose, children, footer, wide }) {
   );
 }
 
-export function Confirm({ title, children, confirmLabel = 'Confirm', danger, onConfirm, onClose }) {
+export function Confirm({ title, children, confirmLabel = 'Bevestigen', danger, onConfirm, onClose }) {
   const [busy, setBusy] = useState(false);
   return (
     <Modal title={title} onClose={onClose} footer={(
       <>
-        <button type="button" className="btn" onClick={onClose}>Cancel</button>
+        <button type="button" className="btn" onClick={onClose}>Annuleren</button>
         <button type="button" className={`btn ${danger ? 'danger solid' : 'primary'}`} disabled={busy}
           onClick={async () => { setBusy(true); try { await onConfirm(); onClose(); } finally { setBusy(false); } }}>
           {confirmLabel}
@@ -141,8 +142,8 @@ export function Field({ label, hint, error, children, className = '' }) {
 export function TriState({ value, onChange, disabled }) {
   return (
     <div className="tri" role="group">
-      <button type="button" disabled={disabled} className={value === true ? 'on' : ''} onClick={() => onChange(value === true ? null : true)}>Yes</button>
-      <button type="button" disabled={disabled} className={value === false ? 'on no' : ''} onClick={() => onChange(value === false ? null : false)}>No</button>
+      <button type="button" disabled={disabled} className={value === true ? 'on' : ''} onClick={() => onChange(value === true ? null : true)}>Ja</button>
+      <button type="button" disabled={disabled} className={value === false ? 'on no' : ''} onClick={() => onChange(value === false ? null : false)}>Nee</button>
       <button type="button" disabled={disabled} className={value === null || value === undefined ? 'on no' : ''} onClick={() => onChange(null)}>?</button>
     </div>
   );

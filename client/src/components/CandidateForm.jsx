@@ -18,59 +18,59 @@ export default function CandidateForm({ value, onChange, disabled, isAdmin, erro
 
   return (
     <div>
-      <div className="form-section">Personal details</div>
+      <div className="form-section">Persoonlijke gegevens</div>
       <div className="form-grid">
-        {text('full_name', 'Full name')}
-        <Field label="Phone number (WhatsApp)" error={errors.phone || phoneWarning} hint="International format, e.g. +31612345678">
+        {text('full_name', 'Volledige naam')}
+        <Field label="Telefoonnummer (WhatsApp)" error={errors.phone || phoneWarning} hint="Internationaal, bijv. +31612345678">
           <input type="tel" value={value.phone_input ?? value.phone ?? ''} disabled={disabled} onChange={(e) => onChange('phone', e.target.value)} required />
         </Field>
-        {text('email', 'Email address', { type: 'email' })}
-        {text('nationality', 'Nationality')}
-        {text('current_city', 'Current city')}
-        {text('current_country', 'Current country')}
-        {text('date_of_birth', 'Date of birth', { type: 'date' })}
-        <Field label="Age"><input type="number" min="14" max="100" value={value.age ?? ''} disabled={disabled} onChange={(e) => onChange('age', e.target.value === '' ? null : Number(e.target.value))} /></Field>
-        <Field label="Has a valid BSN" hint="Only yes/no is stored. Never ask for or save the BSN number itself.">
+        {text('email', 'E-mailadres', { type: 'email' })}
+        {text('nationality', 'Nationaliteit')}
+        {text('current_city', 'Woonplaats')}
+        {text('current_country', 'Land')}
+        {text('date_of_birth', 'Geboortedatum', { type: 'date' })}
+        <Field label="Leeftijd"><input type="number" min="14" max="100" value={value.age ?? ''} disabled={disabled} onChange={(e) => onChange('age', e.target.value === '' ? null : Number(e.target.value))} /></Field>
+        <Field label="Heeft een geldig BSN" hint="Alleen ja/nee wordt bewaard. Vraag of bewaar nooit het BSN-nummer zelf.">
           <TriState value={value.has_bsn} disabled={disabled} onChange={(v) => onChange('has_bsn', v)} />
         </Field>
       </div>
 
-      <div className="form-section">Languages &amp; licences</div>
+      <div className="form-section">Talen &amp; rijbewijs</div>
       <div className="form-grid">
-        <Field label="Languages spoken" hint="Separate with commas, e.g. Polish, English, Dutch">
+        <Field label="Gesproken talen" hint="Scheid met komma's, bijv. Pools, Engels, Nederlands">
           <input type="text" disabled={disabled} value={value.languages_input ?? (value.languages || []).join(', ')} onChange={(e) => onChange('languages', e.target.value)} />
         </Field>
-        <Field label="English level">
+        <Field label="Niveau Engels">
           <select value={value.english_level ?? ''} disabled={disabled} onChange={(e) => onChange('english_level', e.target.value || null)}>
-            <option value="">Unknown</option>
+            <option value="">Onbekend</option>
             {Object.entries(ENGLISH_LABELS).map(([k, l]) => <option key={k} value={k}>{l}</option>)}
           </select>
         </Field>
-        {bool('driving_licence', 'Driving licence')}
-        {bool('own_car', 'Own car')}
-        {bool('forklift', 'Forklift certificate')}
-        {bool('ept', 'EPT certificate')}
-        {bool('reach_truck', 'Reach truck certificate')}
-        {bool('has_experience', 'Warehouse / production experience')}
+        {bool('driving_licence', 'Rijbewijs')}
+        {bool('own_car', 'Eigen auto')}
+        {bool('forklift', 'Heftruckcertificaat')}
+        {bool('ept', 'EPT-certificaat')}
+        {bool('reach_truck', 'Reachtruckcertificaat')}
+        {bool('has_experience', 'Ervaring magazijn / productie')}
       </div>
 
-      <div className="form-section">Work</div>
+      <div className="form-section">Werk</div>
       <div className="form-grid">
-        {text('work_experience', 'Work experience', { textarea: true, span: true })}
-        {text('previous_jobs', 'Previous jobs', { textarea: true, span: true })}
-        {text('desired_job', 'Desired job')}
-        {text('availability', 'Availability', { placeholder: 'e.g. immediately, from 1 December' })}
-        {text('available_from', 'Available from (date)', { type: 'date' })}
-        <Field label="Candidate status">
+        {text('work_experience', 'Werkervaring', { textarea: true, span: true })}
+        {text('previous_jobs', 'Vorige banen', { textarea: true, span: true })}
+        {text('desired_job', 'Gewenst werk')}
+        {text('availability', 'Beschikbaarheid', { placeholder: 'bijv. direct, vanaf 1 december' })}
+        {text('available_from', 'Beschikbaar vanaf (datum)', { type: 'date' })}
+        <Field label="Status kandidaat">
           <select value={value.status || 'new'} disabled={disabled} onChange={(e) => onChange('status', e.target.value)}>
             {STATUSES.map((s) => <option key={s} value={s}>{STATUS_LABELS[s]}</option>)}
           </select>
         </Field>
-        {text('notes', 'Notes', { textarea: true, span: true, rows: 4 })}
+        {text('notes', 'Notities', { textarea: true, span: true, rows: 4 })}
         <Field className="span-2">
           <label className="checkbox">
             <input type="checkbox" checked={!!value.consent_given} disabled={disabled} onChange={(e) => onChange('consent_given', e.target.checked)} />
-            The candidate agreed that we store their data for recruitment (privacy consent)
+            De kandidaat geeft toestemming om zijn gegevens te bewaren voor werving (privacytoestemming)
           </label>
         </Field>
       </div>
