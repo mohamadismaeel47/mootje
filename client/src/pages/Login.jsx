@@ -61,14 +61,14 @@ export default function Login({ onLogin, redirect }) {
           {error && <Alert type="error">{error}</Alert>}
           {setup && <Field label="Je naam"><input type="text" value={form.name} onChange={set('name')} required autoFocus /></Field>}
           <Field label="E-mail"><input type="email" value={form.email} onChange={set('email')} required autoComplete="username" autoFocus={!setup} /></Field>
-          {needsCode && (
-            <Field label="Code uit je authenticator-app" hint="Open Google Authenticator of Microsoft Authenticator en typ de code van 6 cijfers.">
-              <input type="text" inputMode="numeric" autoComplete="one-time-code" maxLength={6} value={form.code} onChange={set('code')} required autoFocus />
-            </Field>
-          )}
           <Field label="Wachtwoord" hint={setup ? 'Minstens 10 tekens, met letters en cijfers.' : undefined}>
             <input type="password" value={form.password} onChange={set('password')} required autoComplete={setup ? 'new-password' : 'current-password'} />
           </Field>
+          {needsCode && (
+            <Field label="Code" hint="Open Google Authenticator of Microsoft Authenticator en typ de code van 6 cijfers.">
+              <input type="text" inputMode="numeric" autoComplete="one-time-code" maxLength={6} value={form.code} onChange={set('code')} required autoFocus />
+            </Field>
+          )}
           {setup && status.setupTokenRequired && (
             <Field label="Setup-token" hint="De waarde van SETUP_TOKEN uit Railway (variabelen).">
               <input type="password" value={form.setupToken} onChange={set('setupToken')} required />
