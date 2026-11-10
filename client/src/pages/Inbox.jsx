@@ -5,7 +5,7 @@ import {
   MessageSquarePlus, FlaskConical, Trash2, LayoutTemplate, Timer, UserRound,
 } from 'lucide-react';
 import { api, qs, fmtPhone, fmtTime, fmtDateTime, STATUS_LABELS } from '../api.js';
-import { useAsync, useDebounced, Spinner, Empty, Modal, Field, Alert, ErrorBox, useToast, initials, Confirm } from '../components/ui.jsx';
+import { useAsync, useDebounced, Spinner, Empty, Modal, Field, Alert, ErrorBox, useToast, initials, Confirm, CallButton } from '../components/ui.jsx';
 import { useAuth } from '../App.jsx';
 
 const FILTERS = [['', 'Alles'], ['unread', 'Ongelezen'], ['attention', 'Aandacht'], ['auto', 'Automatisch'], ['manual', 'Handmatig'], ['completed', 'Afgerond']];
@@ -154,6 +154,7 @@ function Chat({ id, onChange }) {
             <b>{name}</b>
             <span className="small muted">{fmtPhone(c.phone)} · {CONV_STATUS[c.status]}</span>
           </div>
+          <CallButton phone={c.phone} small />
           <div className="mode-switch" style={{ width: 210 }}>
             <button type="button" className={c.mode === 'auto' ? 'on' : ''} disabled={busy || !can('recruiter')} onClick={() => c.mode !== 'auto' && setMode('auto')}><Bot size={15} /> Automatisch</button>
             <button type="button" className={c.mode === 'manual' ? 'on' : ''} disabled={busy || !can('recruiter')} onClick={() => c.mode !== 'manual' && setMode('manual')}><Hand size={15} /> Handmatig</button>

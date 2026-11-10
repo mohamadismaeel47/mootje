@@ -6,7 +6,7 @@ import {
 } from 'lucide-react';
 import { api, fmtDate, fmtDateTime, fmtPhone, STATUS_LABELS } from '../api.js';
 import {
-  useAsync, Spinner, ErrorBox, StatusBadge, SubmissionBadge, Empty, Confirm, Modal, Alert, Field, useToast, initials, scoreColor, downloadUrl,
+  useAsync, Spinner, ErrorBox, StatusBadge, SubmissionBadge, Empty, Confirm, Modal, Alert, Field, useToast, initials, scoreColor, downloadUrl, CallButton,
 } from '../components/ui.jsx';
 import CandidateForm, { toPayload } from '../components/CandidateForm.jsx';
 import { useAuth } from '../App.jsx';
@@ -57,6 +57,7 @@ export default function CandidateDetail() {
             {c.conversation
               ? <Link to={`/inbox/${c.conversation.id}`} className="btn blue"><MessageCircle size={16} /> Chat openen{c.conversation.unread_count > 0 ? ` (${c.conversation.unread_count})` : ''}</Link>
               : can('recruiter') && <button type="button" className="btn blue" disabled={starting} onClick={startChat}><MessageCircle size={16} /> WhatsApp starten</button>}
+            <CallButton phone={c.phone} />
             {can('admin') && <button type="button" className="btn" onClick={() => downloadUrl(`/api/candidates/${c.id}/data-export`)} title="AVG: gegevens exporteren"><FileDown size={16} /> Gegevens exporteren</button>}
             {can('admin') && <button type="button" className="btn danger" onClick={() => setConfirmDelete(true)}><Trash2 size={16} /> Verwijderen</button>}
           </div>

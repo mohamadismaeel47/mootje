@@ -7,7 +7,7 @@ import {
   CheckCheck, MessageSquareOff, Mail,
 } from 'lucide-react';
 import { api, fmtDate, fmtPhone, STATUS_LABELS, STATUSES } from '../api.js';
-import { useAsync, Spinner, ErrorBox, StatusBadge, Empty, initials } from '../components/ui.jsx';
+import { useAsync, Spinner, ErrorBox, StatusBadge, Empty, initials, CallButton } from '../components/ui.jsx';
 import { useAuth } from '../App.jsx';
 
 // Validated categorical slots 1 and 2 (blue, orange).
@@ -118,7 +118,8 @@ export default function Dashboard() {
                     <td><StatusBadge status={c.status} /></td>
                     <td className="sub">{c.last_outbound_at ? `${daysAgo(c.last_outbound_at)} (${fmtDate(c.last_outbound_at)})` : 'Nog nooit'}</td>
                     <td className="sub">{c.last_inbound_at ? `${daysAgo(c.last_inbound_at)} (${fmtDate(c.last_inbound_at)})` : '—'}</td>
-                    <td style={{ textAlign: 'right' }}>
+                    <td style={{ textAlign: 'right', whiteSpace: 'nowrap' }}>
+                      <CallButton phone={c.phone} small iconOnly />{' '}
                       {c.conversation_id
                         ? <Link to={`/inbox/${c.conversation_id}`} className="btn sm"><MessageCircle size={14} /> Chat openen</Link>
                         : <Link to={`/candidates/${c.candidate_id}`} className="btn sm"><MessageCircle size={14} /> WhatsApp starten</Link>}

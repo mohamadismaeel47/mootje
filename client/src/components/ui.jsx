@@ -1,5 +1,5 @@
 import { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
-import { X, AlertTriangle, Info, CheckCircle2, AlertCircle, Inbox } from 'lucide-react';
+import { X, AlertTriangle, Info, CheckCircle2, AlertCircle, Inbox, Phone } from 'lucide-react';
 import { STATUS_LABELS } from '../api.js';
 
 /* ---------- Toasts ---------- */
@@ -165,4 +165,16 @@ export function downloadUrl(url) {
   document.body.appendChild(a);
   a.click();
   a.remove();
+}
+
+// "Bellen": opens the phone app (or Phone Link on Windows) with the number filled in. A normal phone call, not WhatsApp.
+export function CallButton({ phone, small, label = 'Bellen', iconOnly }) {
+  if (!phone || /^999/.test(phone)) return null; // test numbers from the test chat cannot be called
+  const number = `+${String(phone).replace(/\D/g, '')}`;
+  return (
+    <a href={`tel:${number}`} className={`btn ${small ? 'sm' : ''} ${iconOnly ? 'icon' : ''}`} title={`Bellen: ${number}`} aria-label={`Bellen: ${number}`}
+      onClick={(e) => e.stopPropagation()}>
+      <Phone size={small ? 14 : 16} />{!iconOnly && ` ${label}`}
+    </a>
+  );
 }

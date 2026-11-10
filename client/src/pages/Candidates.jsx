@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { Search, UserPlus, Download, Upload, FileSpreadsheet, Users, Paperclip, MessageCircleQuestionMark } from 'lucide-react';
 import { api, qs, fmtDate, fmtPhone, STATUS_LABELS, STATUSES, ENGLISH_LABELS } from '../api.js';
-import { useAsync, useDebounced, Spinner, ErrorBox, StatusBadge, Empty, Modal, Alert, useToast, downloadUrl } from '../components/ui.jsx';
+import { useAsync, useDebounced, Spinner, ErrorBox, StatusBadge, Empty, Modal, Alert, useToast, downloadUrl, CallButton } from '../components/ui.jsx';
 import CandidateForm, { toPayload } from '../components/CandidateForm.jsx';
 import { useAuth } from '../App.jsx';
 
@@ -92,7 +92,7 @@ export default function Candidates() {
           <div className="table-wrap">
             <table className="table">
               <thead>
-                <tr><th>Kandidaat</th><th>Status</th><th>Woonplaats</th><th>Vaardigheden</th><th>Gewenst werk</th><th>Ingeschreven</th></tr>
+                <tr><th>Kandidaat</th><th>Status</th><th>Woonplaats</th><th>Vaardigheden</th><th>Gewenst werk</th><th>Ingeschreven</th><th /></tr>
               </thead>
               <tbody>
                 {data?.items.map((c) => (
@@ -115,6 +115,7 @@ export default function Candidates() {
                     </td>
                     <td className="sub">{c.desired_job || '—'}</td>
                     <td className="sub">{fmtDate(c.created_at)}</td>
+                    <td style={{ textAlign: 'right' }}><CallButton phone={c.phone} small iconOnly /></td>
                   </tr>
                 ))}
               </tbody>
