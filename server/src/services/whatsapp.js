@@ -183,7 +183,11 @@ export async function testConnection() {
       if (p.is_on_biz_app !== undefined) {
         push('Coexistence (also on WhatsApp Business app)', true, p.is_on_biz_app ? 'Yes – this number is also used in the WhatsApp Business app (Coexistence)' : 'No – this number is only on the Cloud API');
       }
-      if (p.name_status) push('Display name status', p.name_status === 'APPROVED', p.name_status);
+      if (p.name_status) {
+        const usable = ['APPROVED', 'AVAILABLE_WITHOUT_REVIEW'].includes(p.name_status);
+        push('Display name status', usable, usable ? `${p.name_status} – the display name can be used` : p.name_status,
+          usable ? undefined : 'Check the display name in WhatsApp Manager > Phone numbers.');
+      }
     } catch (e) {
       push('Phone number found', false, e.message, e.hint);
     }
